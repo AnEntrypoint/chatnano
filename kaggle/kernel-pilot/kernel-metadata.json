@@ -1,0 +1,16 @@
+{
+  "id": "heclgang/chatnano-ternary-pilot",
+  "title": "chatnano ternary pilot",
+  "code_file": "run_kaggle.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [
+    "heclgang/chatnano-ternary-src"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}

@@ -1,0 +1,711 @@
+{
+ "out_dir": "voices/out",
+ "events": [
+  "spawn",
+  "attack",
+  "ability",
+  "death"
+ ],
+ "characters": [
+  {
+   "name": "antimage",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Magic. Everywhere I look, magic.",
+    "I'll start with the staff, then the fingers.",
+    "Your mana is a loan. I'm the collections agent.",
+    "Tell them the mage-less age... has begun."
+   ]
+  },
+  {
+   "name": "axe",
+   "ref": "voices/refs/pd_dg.wav",
+   "lines": [
+    "Nobody asks the axe where it's been.",
+    "Come closer. I'm told I'm very persuasive.",
+    "Culling blade! And by blade, I mean the whole axe.",
+    "Missed. How... embarrassing."
+   ]
+  },
+  {
+   "name": "bane",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Sweet dreams. I'll be in all of them.",
+    "Sleep now. Scream later. That's the schedule.",
+    "Grip of terror! It's like a hug, if hugs were lawsuits.",
+    "Waking up is overrated anyway."
+   ]
+  },
+  {
+   "name": "bloodseeker",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "I can smell you from here. That's a complaint.",
+    "Running only makes it warmer. And redder.",
+    "Rupture! Do try to walk it off. Slowly.",
+    "Ironically... bleeding out."
+   ]
+  },
+  {
+   "name": "crystal_maiden",
+   "ref": "voices/refs/pd_cc.wav",
+   "lines": [
+    "Bring a coat. Actually, bring three.",
+    "Everyone hold still. Frostbite is much less funny if you flinch.",
+    "Freezing field! Weather's lovely, isn't it?",
+    "Thawing. Already plotting."
+   ]
+  },
+  {
+   "name": "drow_ranger",
+   "ref": "voices/refs/pd_ks.wav",
+   "lines": [
+    "Wind's up. So am I.",
+    "Frost arrows. They're complimentary with every shot.",
+    "Silence the back line. Then the front line. Then the noise.",
+    "The cold... finally got in."
+   ]
+  },
+  {
+   "name": "earthshaker",
+   "ref": "voices/refs/pd_mlo.wav",
+   "lines": [
+    "Ground's been restless. Same as me.",
+    "Everyone gather round! No, closer. Closer!",
+    "Echo slam!... That was everyone, wasn't it?",
+    "The ground... took me back."
+   ]
+  },
+  {
+   "name": "juggernaut",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "The mask stays on. It's not a phase.",
+    "Blade fury! Spinning is not a dance. Do not clap.",
+    "Omnislash. Try to keep up. You won't.",
+    "Unmasked. Disappointing, I know."
+   ]
+  },
+  {
+   "name": "morphling",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Solid. For now. Let's see how long that lasts.",
+    "I'll be whatever this needs me to be.",
+    "Adaptive strike! Strength, agility, or just general menace?",
+    "Going... liquid. See you in the puddle."
+   ]
+  },
+  {
+   "name": "phantom_lancer",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "One of me? Which one?",
+    "Pick a target. Any of them. Any of us.",
+    "Spirit lance! And a few hundred of my closest friends.",
+    "Which one died? Doesn't matter. I felt it."
+   ]
+  },
+  {
+   "name": "sand_king",
+   "ref": "voices/refs/pd_wt.wav",
+   "lines": [
+    "Burrowing. Socialising later.",
+    "Sand's warm today. You'll find out why.",
+    "Epicenter! Hold on... this takes a moment. Terrifying moment.",
+    "Scattered. Reassembling was always the hard part."
+   ]
+  },
+  {
+   "name": "storm_spirit",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Late! Late! Always late!",
+    "Zip. Zap. Regret. That's the full rotation.",
+    "Ball lightning! I'm already behind you. Hello.",
+    "Out of charge. Out of everything."
+   ]
+  },
+  {
+   "name": "vengefulspirit",
+   "ref": "voices/refs/pd_asm.wav",
+   "lines": [
+    "I remember what you did. All of it.",
+    "Revenge is a dish best served repeatedly.",
+    "Wave of terror! Also known as my personality.",
+    "Even death doesn't settle this."
+   ]
+  },
+  {
+   "name": "windrunner",
+   "ref": "voices/refs/pd_bk.wav",
+   "lines": [
+    "Wind's got my back. Literally. It's pushing.",
+    "Shackleshot! Two for one, if the geometry cooperates.",
+    "Focus fire! Try not to miss. I'll be insufferable if you do.",
+    "Wind... stopped."
+   ]
+  },
+  {
+   "name": "lich",
+   "ref": "voices/refs/pd_ik.wav",
+   "lines": [
+    "Frost armour. Complimentary eternal winter.",
+    "I've died before. It didn't take.",
+    "Chain frost! It'll find you. It's very persistent.",
+    "Again? This is getting repetitive."
+   ]
+  },
+  {
+   "name": "shadow_shaman",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Hex first, questions never.",
+    "I brought wards. Many, many wards.",
+    "Mass serpent ward! They're not pets. They're arguments.",
+    "The wards... outlive me. As planned."
+   ]
+  },
+  {
+   "name": "tidehunter",
+   "ref": "voices/refs/pd_dg.wav",
+   "lines": [
+    "Tide's in. So am I.",
+    "Anchor's heavier than you. That's a threat.",
+    "Ravage! Everyone up! Everyone down!",
+    "Back to the deep. Bring snacks next time."
+   ]
+  },
+  {
+   "name": "witch_doctor",
+   "ref": "voices/refs/pd_ss.wav",
+   "lines": [
+    "I have a prescription. It's a bouncing skull.",
+    "Cask! It goes where it wants. Mostly at you.",
+    "Death ward! Stand in it. That's not a request.",
+    "The spirits... want a word."
+   ]
+  },
+  {
+   "name": "enigma",
+   "ref": "voices/refs/pd_mlo.wav",
+   "lines": [
+    "I was here before the map. I'll be here after.",
+    "Three of me is the minimum viable approach.",
+    "Black hole. Please gather. Attendance is mandatory.",
+    "Collapsing. Briefly."
+   ]
+  },
+  {
+   "name": "tinker",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "March of the machines! And the march of my ego.",
+    "Rockets. So many rockets. It's a bit much, I know.",
+    "Rearm! Everything's reusable if you're stubborn enough.",
+    "My machines... keep going. Lucky them."
+   ]
+  },
+  {
+   "name": "necrolyte",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Death pulse. Everyone gets one. Fair's fair.",
+    "You're already dying. I'm just tidying.",
+    "Reaper's scythe! No paperwork required.",
+    "Heartstopper... finally stopped mine."
+   ]
+  },
+  {
+   "name": "warlock",
+   "ref": "voices/refs/pd_wt.wav",
+   "lines": [
+    "I brought a friend. He's enormous and furious.",
+    "Fatal bonds! You're in this together. Unfortunately.",
+    "Chaotic offering! Meet the golem. Don't.",
+    "The golem... outlives the warlock. Cruel design."
+   ]
+  },
+  {
+   "name": "beastmaster",
+   "ref": "voices/refs/pd_ik.wav",
+   "lines": [
+    "Hawk, boar, me. In that order of charm.",
+    "Wild axes! They come back. Like regrets.",
+    "Primal roar! I've been saving that one.",
+    "The beasts... carry on without me."
+   ]
+  },
+  {
+   "name": "queenofpain",
+   "ref": "voices/refs/pd_cc.wav",
+   "lines": [
+    "Scream now, or I'll take it as rude.",
+    "Sonic wave! Do try not to enjoy it.",
+    "Blink, strike, smile. In whatever order amuses me.",
+    "Pain... was always going to be mutual."
+   ]
+  },
+  {
+   "name": "venomancer",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Poison's polite. It takes its time.",
+    "Plague wards. They're complimentary.",
+    "Poison nova! Everyone gets a little something.",
+    "Rotting. It's the family business."
+   ]
+  },
+  {
+   "name": "faceless_void",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Time's a suggestion. I don't take suggestions.",
+    "I've seen this fight. You lose.",
+    "Chronosphere! Everyone freeze. I'll wait.",
+    "Time... caught up. Rude."
+   ]
+  },
+  {
+   "name": "skeleton_king",
+   "ref": "voices/refs/pd_dg.wav",
+   "lines": [
+    "Kneel. It's a formality, but do it.",
+    "Strike me down. Seriously, go ahead. I'll wait.",
+    "Reincarnation! Third time's the charm. Fifth, really.",
+    "Down again. Give it a moment."
+   ]
+  },
+  {
+   "name": "death_prophet",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "The spirits are chatty today. Unfortunate for you.",
+    "Exorcism! I'll just stand here and be spooky.",
+    "Spirit siphon. Sharing is caring.",
+    "The spirits... finally went quiet."
+   ]
+  },
+  {
+   "name": "phantom_assassin",
+   "ref": "voices/refs/pd_ks.wav",
+   "lines": [
+    "You won't see it. That's the point.",
+    "Blur! I'm everywhere and also not.",
+    "Coup de grace. If it lands. If.",
+    "Even shadows... get found eventually."
+   ]
+  },
+  {
+   "name": "templar_assassin",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Refraction's up. Hit me. I dare you.",
+    "Meld. Now you see me, now you really don't.",
+    "Psi blades! Cutting through more than one of you.",
+    "Focus... broken."
+   ]
+  },
+  {
+   "name": "dragon_knight",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Shield, lance, patience. Then fire.",
+    "Dragon tail! I've been holding that in.",
+    "Elder dragon form! Big, scaly, and finally comfortable.",
+    "Back to human. Always a comedown."
+   ]
+  },
+  {
+   "name": "life_stealer",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Rage! Everything's food. Everything.",
+    "Infest. I'll be inside. Metaphorically. No, literally.",
+    "Feast! Thank you, thank you, I'll be here all week.",
+    "Unrage. Cold. Hungry. Rude."
+   ]
+  },
+  {
+   "name": "dark_seer",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Ion shell. Wear it. It's flammable.",
+    "Vacuum! Everyone in the middle, please.",
+    "Wall of replica! Meet yourselves. I'll wait.",
+    "Even the copies... fade."
+   ]
+  },
+  {
+   "name": "omniknight",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Purification. You're welcome in advance.",
+    "Guardian angel! Don't waste it. I see you.",
+    "Repel! Physical-only, for now.",
+    "The light... takes me. Worth it."
+   ]
+  },
+  {
+   "name": "enchantress",
+   "ref": "voices/refs/pd_asm.wav",
+   "lines": [
+    "Untouchable. Not a personality flaw, a feature.",
+    "Enchant! You're on my side now. Congratulations.",
+    "Impetus! Distance makes the heart grow... louder.",
+    "Even the forest... lets go."
+   ]
+  },
+  {
+   "name": "night_stalker",
+   "ref": "voices/refs/pd_mlo.wav",
+   "lines": [
+    "Daylight's a rumour. I don't believe in it.",
+    "Darkness! Finally, decent working conditions.",
+    "Void! Now nobody can see me cheating.",
+    "The sun. Every time. The sun."
+   ]
+  },
+  {
+   "name": "broodmother",
+   "ref": "voices/refs/pd_bk.wav",
+   "lines": [
+    "Children! Everywhere! Mind the webs.",
+    "Spin web. It's structural. And sticky.",
+    "Insatiable hunger! That's the whole plan, honestly.",
+    "The brood... scatters."
+   ]
+  },
+  {
+   "name": "bounty_hunter",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Tracked. Tagged. Billed.",
+    "Jinada! That's a discount, not a warning.",
+    "Shuriken! Bounces if you line up. Please line up.",
+    "Bounty... collected. Mine."
+   ]
+  },
+  {
+   "name": "batrider",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Hold tight. The bat does not brake.",
+    "Flamebreak! Fire's a navigational aid now.",
+    "Flaming lasso! You're coming with me. No luggage.",
+    "Bat's fine. I'm the problem."
+   ]
+  },
+  {
+   "name": "spectre",
+   "ref": "voices/refs/pd_ss.wav",
+   "lines": [
+    "I'm already here. Behind you. Always.",
+    "Haunt! Everyone gets a visit.",
+    "Reality! Can't run from what's everywhere.",
+    "Back to the veil. See you soon."
+   ]
+  },
+  {
+   "name": "doom_bringer",
+   "ref": "voices/refs/pd_wt.wav",
+   "lines": [
+    "Doom. That's the whole sentence.",
+    "I ate something for this. You don't want details.",
+    "Doom! Sit down. Stop healing. Stop everything.",
+    "Doomed. Fitting, I suppose."
+   ]
+  },
+  {
+   "name": "ancient_apparition",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Ice blast. It travels. It waits. It arrives.",
+    "Cold feet! Literally. Stop moving.",
+    "Ice vortex. Ruining picnics across the map.",
+    "Thawing. The Universe carries on."
+   ]
+  },
+  {
+   "name": "spirit_breaker",
+   "ref": "voices/refs/pd_ik.wav",
+   "lines": [
+    "CHARGE! ...Nobody move. I can't steer.",
+    "Greater bash! Momentum is a personality type.",
+    "Nether strike! Here I come. Eventually.",
+    "Unstoppable. Was. Past tense. Ouch."
+   ]
+  },
+  {
+   "name": "gyrocopter",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Rotors up! Don't stand behind me.",
+    "Rocket barrage! I'm not sure how many I brought.",
+    "Call down! Two missiles, one very bad day.",
+    "Going down! I mean it this time."
+   ]
+  },
+  {
+   "name": "alchemist",
+   "ref": "voices/refs/pd_dg.wav",
+   "lines": [
+    "Greed first. Consequences later.",
+    "Unstable concoction! Shake well. Do not shake well.",
+    "Chemical rage! Look at me, I'm enormous.",
+    "Even gold... doesn't help here."
+   ]
+  },
+  {
+   "name": "invoker",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Ten spells. I'll use eleven.",
+    "Sun strike! Global delivery, no tracking number.",
+    "Tornado, EMP, meteor. In that order if you're lucky.",
+    "Out of orbs. Out of patience."
+   ]
+  },
+  {
+   "name": "silencer",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Quiet. That's the whole ability. Quiet.",
+    "Global silence! Everyone stop talking. Now.",
+    "Glaives of wisdom! The smarter you are, the worse this hurts.",
+    "Silenced. Finally. Peaceful, actually."
+   ]
+  },
+  {
+   "name": "obsidian_destroyer",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Imprisonment. Time out. Indefinite.",
+    "Arcane orb! Bigger brain, bigger hit.",
+    "Sanity's eclipse! Enjoy the headache.",
+    "Mind... goes dark. Fitting."
+   ]
+  },
+  {
+   "name": "brewmaster",
+   "ref": "voices/refs/pd_mlo.wav",
+   "lines": [
+    "Three of me, and none of us agree.",
+    "Thunder clap! And a drink, afterwards.",
+    "Primal split! Earth, storm, fire, and a lot of shouting.",
+    "Reassembling. Somebody get me a chair."
+   ]
+  },
+  {
+   "name": "shadow_demon",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Shadow poison! It stacks. So do my grudges.",
+    "Disruption! Meet your doubles. They're worse.",
+    "Demonic purge! Everything off. Everything.",
+    "Back to the shadows. They missed me."
+   ]
+  },
+  {
+   "name": "lone_druid",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Me, the bear, and poor communication.",
+    "Bear's faster than me. Bear goes first.",
+    "True form! Finally, the good one.",
+    "Bear's fine. I'm the one who fell."
+   ]
+  },
+  {
+   "name": "chaos_knight",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Odds are in my favour. Probably.",
+    "Reality rift! You, me, and no witnesses.",
+    "Phantasm! Four of me, one of you. You do the maths.",
+    "Chaos... went the other way."
+   ]
+  },
+  {
+   "name": "ogre_magi",
+   "ref": "voices/refs/pd_wt.wav",
+   "lines": [
+    "Two heads, one plan. The plan is hitting.",
+    "Fireblast! Multicast! Again! Again!",
+    "Bloodlust! On me? On me. Yes. Good.",
+    "One head's still talking. So, fine."
+   ]
+  },
+  {
+   "name": "undying",
+   "ref": "voices/refs/pd_ik.wav",
+   "lines": [
+    "Flesh golem. I've been working on my physique.",
+    "Decay! Strength, borrowed. Permanently.",
+    "Tombstone! Hit it. That's not a challenge, it's a threat.",
+    "Undying. Turns out, loosely."
+   ]
+  },
+  {
+   "name": "disruptor",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Static storm! Hold that thought. And everything else.",
+    "Glimpse! You were just there. Go back.",
+    "Thunder strike! Location: you.",
+    "Storm... fizzles out."
+   ]
+  },
+  {
+   "name": "naga_siren",
+   "ref": "voices/refs/pd_cc.wav",
+   "lines": [
+    "Song of the siren. nap time, everyone.",
+    "Ensnare! The sea's got a grip on you.",
+    "Rip tide! Armour's optional, apparently.",
+    "The song... stops."
+   ]
+  },
+  {
+   "name": "keeper_of_the_light",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Illuminate! Hold on, this takes a moment.",
+    "Blinding light! Mind the horse.",
+    "Will-o-wisp! Everyone gather. Gently.",
+    "The light... dims. Someone else's turn."
+   ]
+  },
+  {
+   "name": "troll_warlord",
+   "ref": "voices/refs/pd_dg.wav",
+   "lines": [
+    "Whirling axes! Some ranged, some not. All angry.",
+    "Battle trance! Everyone hit faster. Including me.",
+    "Fervour! I'm building up to something. Stand by.",
+    "Trolls... don't stay down. Usually."
+   ]
+  },
+  {
+   "name": "magnataur",
+   "ref": "voices/refs/pd_mlo.wav",
+   "lines": [
+    "Skewer! Everyone line up. No, in a row.",
+    "Reverse polarity! All of you. Here. Now.",
+    "Empower! Somebody's getting very strong. Guess who.",
+    "Horn's... bent. Finally."
+   ]
+  },
+  {
+   "name": "bristleback",
+   "ref": "voices/refs/pd_wt.wav",
+   "lines": [
+    "Quills out. Back's fine. You're not.",
+    "Go visit my back. I insist. It's worse there.",
+    "Warpath! Every spell makes me faster. That's just rude.",
+    "Quills... retract. Rude."
+   ]
+  },
+  {
+   "name": "tusk",
+   "ref": "voices/refs/pd_ik.wav",
+   "lines": [
+    "Snowball! Everyone in. No pushing. Yes pushing.",
+    "Walrus punch! It's a one-hit. Singular. Final.",
+    "Ice shards and a very bad attitude.",
+    "Cold. Finally. And I'd know."
+   ]
+  },
+  {
+   "name": "skywrath_mage",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "The sky is speaking. Rude, but accurate.",
+    "Arcane bolt! Small, fast, frequent. Like me.",
+    "Mystic flare! Stand still. You won't, but do.",
+    "The sky... goes quiet."
+   ]
+  },
+  {
+   "name": "abaddon",
+   "ref": "voices/refs/pd_dg.wav",
+   "lines": [
+    "Shield up. Hit me. I dare you. Seriously.",
+    "Borrowed time! I'll pay it back. Eventually.",
+    "Mist coil! Heals me, hurts you. Efficient.",
+    "Borrowed time's... due."
+   ]
+  },
+  {
+   "name": "legion_commander",
+   "ref": "voices/refs/pd_ks.wav",
+   "lines": [
+    "Duel! One of us walks away. Statistically, me.",
+    "Overwhelming odds! I brought the whole lane.",
+    "Press the attack! Faster, stronger, louder.",
+    "Lost the duel. Won the argument, though."
+   ]
+  },
+  {
+   "name": "ember_spirit",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "Three remnants, one very bad idea.",
+    "Sleight of fist! Everyone gets hit at once. Efficient.",
+    "Activate fire remnant! Wait, which one?",
+    "Embers... out."
+   ]
+  },
+  {
+   "name": "earth_spirit",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Rolling boulder! Coming through, no brakes.",
+    "Boulder smash! Rock's got opinions now.",
+    "Geomagnetic grip! Pulling you in. Gently. No.",
+    "Boulder... becomes a rock. Just a rock."
+   ]
+  },
+  {
+   "name": "phoenix",
+   "ref": "voices/refs/pd_cjph.wav",
+   "lines": [
+    "Fire spirits! Four, and they don't come back.",
+    "Sun ray! It's a laser. It's fine. It's not fine.",
+    "Supernova! I'm an egg now. Please defend the egg.",
+    "Back to ash. Back to an egg. Back again."
+   ]
+  },
+  {
+   "name": "oracle",
+   "ref": "voices/refs/pd_lcw.wav",
+   "lines": [
+    "False promise! Healing's delayed. So's the screaming.",
+    "Purifying flames! It heals. Trust me. Mostly.",
+    "Fate's edict! You're magic-immune and completely useless.",
+    "Fate... caught up."
+   ]
+  },
+  {
+   "name": "winter_wyvern",
+   "ref": "voices/refs/pd_asm.wav",
+   "lines": [
+    "Winter's curse! Everyone attack your friend. Awkward.",
+    "Splinter blast! It bounces. A lot.",
+    "Cold embrace! You're safe and completely useless. You're welcome.",
+    "The wyvern... cools."
+   ]
+  },
+  {
+   "name": "arc_warden",
+   "ref": "voices/refs/pd_el.wav",
+   "lines": [
+    "Tempest double! Meet me. I'm insufferable.",
+    "Spark wraith! It waits. Patiently. Forever, if needed.",
+    "Flux! Standing still was a mistake.",
+    "The double... goes first. Thankfully."
+   ]
+  }
+ ]
+}

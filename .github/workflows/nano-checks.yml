@@ -1,0 +1,29 @@
+name: nano-checks
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax of the serving code and every bench script
+        run: |
+          python -m py_compile nano_fast/fast_nano.py nano_fast/serve.py nano_fast/bench/*.py
+      - name: Every bench script is listed in the bench README
+        run: |
+          python - <<'PY'
+          import glob, os, sys
+          readme = open("nano_fast/bench/README.md").read()
+          missing = [os.path.basename(f) for f in glob.glob("nano_fast/bench/*.py")
+                     if os.path.basename(f) not in readme]
+          if missing:
+              print("not listed in bench README:", missing)
+              sys.exit(1)
+          print("all bench scripts listed")
+          PY

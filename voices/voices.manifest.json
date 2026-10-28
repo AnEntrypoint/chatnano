@@ -1,0 +1,500 @@
+{
+ "events": [
+  "spawn",
+  "attack",
+  "ability",
+  "death"
+ ],
+ "voices": {
+  "antimage": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/antimage/000.wav",
+   "attack": "voices/out/antimage/001.wav",
+   "ability": "voices/out/antimage/002.wav",
+   "death": "voices/out/antimage/003.wav"
+  },
+  "axe": {
+   "voice_ref": "pd_dg",
+   "spawn": "voices/out/axe/000.wav",
+   "attack": "voices/out/axe/001.wav",
+   "ability": "voices/out/axe/002.wav",
+   "death": "voices/out/axe/003.wav"
+  },
+  "bane": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/bane/000.wav",
+   "attack": "voices/out/bane/001.wav",
+   "ability": "voices/out/bane/002.wav",
+   "death": "voices/out/bane/003.wav"
+  },
+  "bloodseeker": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/bloodseeker/000.wav",
+   "attack": "voices/out/bloodseeker/001.wav",
+   "ability": "voices/out/bloodseeker/002.wav",
+   "death": "voices/out/bloodseeker/003.wav"
+  },
+  "crystal_maiden": {
+   "voice_ref": "pd_cc",
+   "spawn": "voices/out/crystal_maiden/000.wav",
+   "attack": "voices/out/crystal_maiden/001.wav",
+   "ability": "voices/out/crystal_maiden/002.wav",
+   "death": "voices/out/crystal_maiden/003.wav"
+  },
+  "drow_ranger": {
+   "voice_ref": "pd_ks",
+   "spawn": "voices/out/drow_ranger/000.wav",
+   "attack": "voices/out/drow_ranger/001.wav",
+   "ability": "voices/out/drow_ranger/002.wav",
+   "death": "voices/out/drow_ranger/003.wav"
+  },
+  "earthshaker": {
+   "voice_ref": "pd_mlo",
+   "spawn": "voices/out/earthshaker/000.wav",
+   "attack": "voices/out/earthshaker/001.wav",
+   "ability": "voices/out/earthshaker/002.wav",
+   "death": "voices/out/earthshaker/003.wav"
+  },
+  "juggernaut": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/juggernaut/000.wav",
+   "attack": "voices/out/juggernaut/001.wav",
+   "ability": "voices/out/juggernaut/002.wav",
+   "death": "voices/out/juggernaut/003.wav"
+  },
+  "morphling": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/morphling/000.wav",
+   "attack": "voices/out/morphling/001.wav",
+   "ability": "voices/out/morphling/002.wav",
+   "death": "voices/out/morphling/003.wav"
+  },
+  "phantom_lancer": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/phantom_lancer/000.wav",
+   "attack": "voices/out/phantom_lancer/001.wav",
+   "ability": "voices/out/phantom_lancer/002.wav",
+   "death": "voices/out/phantom_lancer/003.wav"
+  },
+  "sand_king": {
+   "voice_ref": "pd_wt",
+   "spawn": "voices/out/sand_king/000.wav",
+   "attack": "voices/out/sand_king/001.wav",
+   "ability": "voices/out/sand_king/002.wav",
+   "death": "voices/out/sand_king/003.wav"
+  },
+  "storm_spirit": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/storm_spirit/000.wav",
+   "attack": "voices/out/storm_spirit/001.wav",
+   "ability": "voices/out/storm_spirit/002.wav",
+   "death": "voices/out/storm_spirit/003.wav"
+  },
+  "vengefulspirit": {
+   "voice_ref": "pd_asm",
+   "spawn": "voices/out/vengefulspirit/000.wav",
+   "attack": "voices/out/vengefulspirit/001.wav",
+   "ability": "voices/out/vengefulspirit/002.wav",
+   "death": "voices/out/vengefulspirit/003.wav"
+  },
+  "windrunner": {
+   "voice_ref": "pd_bk",
+   "spawn": "voices/out/windrunner/000.wav",
+   "attack": "voices/out/windrunner/001.wav",
+   "ability": "voices/out/windrunner/002.wav",
+   "death": "voices/out/windrunner/003.wav"
+  },
+  "lich": {
+   "voice_ref": "pd_ik",
+   "spawn": "voices/out/lich/000.wav",
+   "attack": "voices/out/lich/001.wav",
+   "ability": "voices/out/lich/002.wav",
+   "death": "voices/out/lich/003.wav"
+  },
+  "shadow_shaman": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/shadow_shaman/000.wav",
+   "attack": "voices/out/shadow_shaman/001.wav",
+   "ability": "voices/out/shadow_shaman/002.wav",
+   "death": "voices/out/shadow_shaman/003.wav"
+  },
+  "tidehunter": {
+   "voice_ref": "pd_dg",
+   "spawn": "voices/out/tidehunter/000.wav",
+   "attack": "voices/out/tidehunter/001.wav",
+   "ability": "voices/out/tidehunter/002.wav",
+   "death": "voices/out/tidehunter/003.wav"
+  },
+  "witch_doctor": {
+   "voice_ref": "pd_ss",
+   "spawn": "voices/out/witch_doctor/000.wav",
+   "attack": "voices/out/witch_doctor/001.wav",
+   "ability": "voices/out/witch_doctor/002.wav",
+   "death": "voices/out/witch_doctor/003.wav"
+  },
+  "enigma": {
+   "voice_ref": "pd_mlo",
+   "spawn": "voices/out/enigma/000.wav",
+   "attack": "voices/out/enigma/001.wav",
+   "ability": "voices/out/enigma/002.wav",
+   "death": "voices/out/enigma/003.wav"
+  },
+  "tinker": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/tinker/000.wav",
+   "attack": "voices/out/tinker/001.wav",
+   "ability": "voices/out/tinker/002.wav",
+   "death": "voices/out/tinker/003.wav"
+  },
+  "necrolyte": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/necrolyte/000.wav",
+   "attack": "voices/out/necrolyte/001.wav",
+   "ability": "voices/out/necrolyte/002.wav",
+   "death": "voices/out/necrolyte/003.wav"
+  },
+  "warlock": {
+   "voice_ref": "pd_wt",
+   "spawn": "voices/out/warlock/000.wav",
+   "attack": "voices/out/warlock/001.wav",
+   "ability": "voices/out/warlock/002.wav",
+   "death": "voices/out/warlock/003.wav"
+  },
+  "beastmaster": {
+   "voice_ref": "pd_ik",
+   "spawn": "voices/out/beastmaster/000.wav",
+   "attack": "voices/out/beastmaster/001.wav",
+   "ability": "voices/out/beastmaster/002.wav",
+   "death": "voices/out/beastmaster/003.wav"
+  },
+  "queenofpain": {
+   "voice_ref": "pd_cc",
+   "spawn": "voices/out/queenofpain/000.wav",
+   "attack": "voices/out/queenofpain/001.wav",
+   "ability": "voices/out/queenofpain/002.wav",
+   "death": "voices/out/queenofpain/003.wav"
+  },
+  "venomancer": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/venomancer/000.wav",
+   "attack": "voices/out/venomancer/001.wav",
+   "ability": "voices/out/venomancer/002.wav",
+   "death": "voices/out/venomancer/003.wav"
+  },
+  "faceless_void": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/faceless_void/000.wav",
+   "attack": "voices/out/faceless_void/001.wav",
+   "ability": "voices/out/faceless_void/002.wav",
+   "death": "voices/out/faceless_void/003.wav"
+  },
+  "skeleton_king": {
+   "voice_ref": "pd_dg",
+   "spawn": "voices/out/skeleton_king/000.wav",
+   "attack": "voices/out/skeleton_king/001.wav",
+   "ability": "voices/out/skeleton_king/002.wav",
+   "death": "voices/out/skeleton_king/003.wav"
+  },
+  "death_prophet": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/death_prophet/000.wav",
+   "attack": "voices/out/death_prophet/001.wav",
+   "ability": "voices/out/death_prophet/002.wav",
+   "death": "voices/out/death_prophet/003.wav"
+  },
+  "phantom_assassin": {
+   "voice_ref": "pd_ks",
+   "spawn": "voices/out/phantom_assassin/000.wav",
+   "attack": "voices/out/phantom_assassin/001.wav",
+   "ability": "voices/out/phantom_assassin/002.wav",
+   "death": "voices/out/phantom_assassin/003.wav"
+  },
+  "templar_assassin": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/templar_assassin/000.wav",
+   "attack": "voices/out/templar_assassin/001.wav",
+   "ability": "voices/out/templar_assassin/002.wav",
+   "death": "voices/out/templar_assassin/003.wav"
+  },
+  "dragon_knight": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/dragon_knight/000.wav",
+   "attack": "voices/out/dragon_knight/001.wav",
+   "ability": "voices/out/dragon_knight/002.wav",
+   "death": "voices/out/dragon_knight/003.wav"
+  },
+  "life_stealer": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/life_stealer/000.wav",
+   "attack": "voices/out/life_stealer/001.wav",
+   "ability": "voices/out/life_stealer/002.wav",
+   "death": "voices/out/life_stealer/003.wav"
+  },
+  "dark_seer": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/dark_seer/000.wav",
+   "attack": "voices/out/dark_seer/001.wav",
+   "ability": "voices/out/dark_seer/002.wav",
+   "death": "voices/out/dark_seer/003.wav"
+  },
+  "omniknight": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/omniknight/000.wav",
+   "attack": "voices/out/omniknight/001.wav",
+   "ability": "voices/out/omniknight/002.wav",
+   "death": "voices/out/omniknight/003.wav"
+  },
+  "enchantress": {
+   "voice_ref": "pd_asm",
+   "spawn": "voices/out/enchantress/000.wav",
+   "attack": "voices/out/enchantress/001.wav",
+   "ability": "voices/out/enchantress/002.wav",
+   "death": "voices/out/enchantress/003.wav"
+  },
+  "night_stalker": {
+   "voice_ref": "pd_mlo",
+   "spawn": "voices/out/night_stalker/000.wav",
+   "attack": "voices/out/night_stalker/001.wav",
+   "ability": "voices/out/night_stalker/002.wav",
+   "death": "voices/out/night_stalker/003.wav"
+  },
+  "broodmother": {
+   "voice_ref": "pd_bk",
+   "spawn": "voices/out/broodmother/000.wav",
+   "attack": "voices/out/broodmother/001.wav",
+   "ability": "voices/out/broodmother/002.wav",
+   "death": "voices/out/broodmother/003.wav"
+  },
+  "bounty_hunter": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/bounty_hunter/000.wav",
+   "attack": "voices/out/bounty_hunter/001.wav",
+   "ability": "voices/out/bounty_hunter/002.wav",
+   "death": "voices/out/bounty_hunter/003.wav"
+  },
+  "batrider": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/batrider/000.wav",
+   "attack": "voices/out/batrider/001.wav",
+   "ability": "voices/out/batrider/002.wav",
+   "death": "voices/out/batrider/003.wav"
+  },
+  "spectre": {
+   "voice_ref": "pd_ss",
+   "spawn": "voices/out/spectre/000.wav",
+   "attack": "voices/out/spectre/001.wav",
+   "ability": "voices/out/spectre/002.wav",
+   "death": "voices/out/spectre/003.wav"
+  },
+  "doom_bringer": {
+   "voice_ref": "pd_wt",
+   "spawn": "voices/out/doom_bringer/000.wav",
+   "attack": "voices/out/doom_bringer/001.wav",
+   "ability": "voices/out/doom_bringer/002.wav",
+   "death": "voices/out/doom_bringer/003.wav"
+  },
+  "ancient_apparition": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/ancient_apparition/000.wav",
+   "attack": "voices/out/ancient_apparition/001.wav",
+   "ability": "voices/out/ancient_apparition/002.wav",
+   "death": "voices/out/ancient_apparition/003.wav"
+  },
+  "spirit_breaker": {
+   "voice_ref": "pd_ik",
+   "spawn": "voices/out/spirit_breaker/000.wav",
+   "attack": "voices/out/spirit_breaker/001.wav",
+   "ability": "voices/out/spirit_breaker/002.wav",
+   "death": "voices/out/spirit_breaker/003.wav"
+  },
+  "gyrocopter": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/gyrocopter/000.wav",
+   "attack": "voices/out/gyrocopter/001.wav",
+   "ability": "voices/out/gyrocopter/002.wav",
+   "death": "voices/out/gyrocopter/003.wav"
+  },
+  "alchemist": {
+   "voice_ref": "pd_dg",
+   "spawn": "voices/out/alchemist/000.wav",
+   "attack": "voices/out/alchemist/001.wav",
+   "ability": "voices/out/alchemist/002.wav",
+   "death": "voices/out/alchemist/003.wav"
+  },
+  "invoker": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/invoker/000.wav",
+   "attack": "voices/out/invoker/001.wav",
+   "ability": "voices/out/invoker/002.wav",
+   "death": "voices/out/invoker/003.wav"
+  },
+  "silencer": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/silencer/000.wav",
+   "attack": "voices/out/silencer/001.wav",
+   "ability": "voices/out/silencer/002.wav",
+   "death": "voices/out/silencer/003.wav"
+  },
+  "obsidian_destroyer": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/obsidian_destroyer/000.wav",
+   "attack": "voices/out/obsidian_destroyer/001.wav",
+   "ability": "voices/out/obsidian_destroyer/002.wav",
+   "death": "voices/out/obsidian_destroyer/003.wav"
+  },
+  "brewmaster": {
+   "voice_ref": "pd_mlo",
+   "spawn": "voices/out/brewmaster/000.wav",
+   "attack": "voices/out/brewmaster/001.wav",
+   "ability": "voices/out/brewmaster/002.wav",
+   "death": "voices/out/brewmaster/003.wav"
+  },
+  "shadow_demon": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/shadow_demon/000.wav",
+   "attack": "voices/out/shadow_demon/001.wav",
+   "ability": "voices/out/shadow_demon/002.wav",
+   "death": "voices/out/shadow_demon/003.wav"
+  },
+  "lone_druid": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/lone_druid/000.wav",
+   "attack": "voices/out/lone_druid/001.wav",
+   "ability": "voices/out/lone_druid/002.wav",
+   "death": "voices/out/lone_druid/003.wav"
+  },
+  "chaos_knight": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/chaos_knight/000.wav",
+   "attack": "voices/out/chaos_knight/001.wav",
+   "ability": "voices/out/chaos_knight/002.wav",
+   "death": "voices/out/chaos_knight/003.wav"
+  },
+  "ogre_magi": {
+   "voice_ref": "pd_wt",
+   "spawn": "voices/out/ogre_magi/000.wav",
+   "attack": "voices/out/ogre_magi/001.wav",
+   "ability": "voices/out/ogre_magi/002.wav",
+   "death": "voices/out/ogre_magi/003.wav"
+  },
+  "undying": {
+   "voice_ref": "pd_ik",
+   "spawn": "voices/out/undying/000.wav",
+   "attack": "voices/out/undying/001.wav",
+   "ability": "voices/out/undying/002.wav",
+   "death": "voices/out/undying/003.wav"
+  },
+  "disruptor": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/disruptor/000.wav",
+   "attack": "voices/out/disruptor/001.wav",
+   "ability": "voices/out/disruptor/002.wav",
+   "death": "voices/out/disruptor/003.wav"
+  },
+  "naga_siren": {
+   "voice_ref": "pd_cc",
+   "spawn": "voices/out/naga_siren/000.wav",
+   "attack": "voices/out/naga_siren/001.wav",
+   "ability": "voices/out/naga_siren/002.wav",
+   "death": "voices/out/naga_siren/003.wav"
+  },
+  "keeper_of_the_light": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/keeper_of_the_light/000.wav",
+   "attack": "voices/out/keeper_of_the_light/001.wav",
+   "ability": "voices/out/keeper_of_the_light/002.wav",
+   "death": "voices/out/keeper_of_the_light/003.wav"
+  },
+  "troll_warlord": {
+   "voice_ref": "pd_dg",
+   "spawn": "voices/out/troll_warlord/000.wav",
+   "attack": "voices/out/troll_warlord/001.wav",
+   "ability": "voices/out/troll_warlord/002.wav",
+   "death": "voices/out/troll_warlord/003.wav"
+  },
+  "magnataur": {
+   "voice_ref": "pd_mlo",
+   "spawn": "voices/out/magnataur/000.wav",
+   "attack": "voices/out/magnataur/001.wav",
+   "ability": "voices/out/magnataur/002.wav",
+   "death": "voices/out/magnataur/003.wav"
+  },
+  "bristleback": {
+   "voice_ref": "pd_wt",
+   "spawn": "voices/out/bristleback/000.wav",
+   "attack": "voices/out/bristleback/001.wav",
+   "ability": "voices/out/bristleback/002.wav",
+   "death": "voices/out/bristleback/003.wav"
+  },
+  "tusk": {
+   "voice_ref": "pd_ik",
+   "spawn": "voices/out/tusk/000.wav",
+   "attack": "voices/out/tusk/001.wav",
+   "ability": "voices/out/tusk/002.wav",
+   "death": "voices/out/tusk/003.wav"
+  },
+  "skywrath_mage": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/skywrath_mage/000.wav",
+   "attack": "voices/out/skywrath_mage/001.wav",
+   "ability": "voices/out/skywrath_mage/002.wav",
+   "death": "voices/out/skywrath_mage/003.wav"
+  },
+  "abaddon": {
+   "voice_ref": "pd_dg",
+   "spawn": "voices/out/abaddon/000.wav",
+   "attack": "voices/out/abaddon/001.wav",
+   "ability": "voices/out/abaddon/002.wav",
+   "death": "voices/out/abaddon/003.wav"
+  },
+  "legion_commander": {
+   "voice_ref": "pd_ks",
+   "spawn": "voices/out/legion_commander/000.wav",
+   "attack": "voices/out/legion_commander/001.wav",
+   "ability": "voices/out/legion_commander/002.wav",
+   "death": "voices/out/legion_commander/003.wav"
+  },
+  "ember_spirit": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/ember_spirit/000.wav",
+   "attack": "voices/out/ember_spirit/001.wav",
+   "ability": "voices/out/ember_spirit/002.wav",
+   "death": "voices/out/ember_spirit/003.wav"
+  },
+  "earth_spirit": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/earth_spirit/000.wav",
+   "attack": "voices/out/earth_spirit/001.wav",
+   "ability": "voices/out/earth_spirit/002.wav",
+   "death": "voices/out/earth_spirit/003.wav"
+  },
+  "phoenix": {
+   "voice_ref": "pd_cjph",
+   "spawn": "voices/out/phoenix/000.wav",
+   "attack": "voices/out/phoenix/001.wav",
+   "ability": "voices/out/phoenix/002.wav",
+   "death": "voices/out/phoenix/003.wav"
+  },
+  "oracle": {
+   "voice_ref": "pd_lcw",
+   "spawn": "voices/out/oracle/000.wav",
+   "attack": "voices/out/oracle/001.wav",
+   "ability": "voices/out/oracle/002.wav",
+   "death": "voices/out/oracle/003.wav"
+  },
+  "winter_wyvern": {
+   "voice_ref": "pd_asm",
+   "spawn": "voices/out/winter_wyvern/000.wav",
+   "attack": "voices/out/winter_wyvern/001.wav",
+   "ability": "voices/out/winter_wyvern/002.wav",
+   "death": "voices/out/winter_wyvern/003.wav"
+  },
+  "arc_warden": {
+   "voice_ref": "pd_el",
+   "spawn": "voices/out/arc_warden/000.wav",
+   "attack": "voices/out/arc_warden/001.wav",
+   "ability": "voices/out/arc_warden/002.wav",
+   "death": "voices/out/arc_warden/003.wav"
+  }
+ }
+}

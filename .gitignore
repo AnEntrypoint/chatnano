@@ -1,0 +1,19 @@
+# chatterbox: source is tracked; its 5.7 GB venv and build output are not
+chatterbox/.venv/
+chatterbox/build/
+chatterbox/**/__pycache__/
+# model weights, large
+models/
+# gm harness runtime state and agentplug caches
+.gm/
+.agentplug/
+.agentplug-kv/
+# generated audio and install logs
+*.wav
+.venv-install*
+.venv/
+__pycache__/
+*.ogg
+# chatterbox source models/ package is code, not weights
+!chatterbox/src/chatterbox/models/
+!chatterbox/src/chatterbox/models/**
