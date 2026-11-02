@@ -622,3 +622,19 @@ The design is a split-KV kernel, 64 cache slots per program, with an online soft
 - `max_memory_allocated` in these benches is a load-time peak, as noted above.
 
 **Open, filed as a row:** the default's own tokens vary between processes on 2 of 15 pairs. The T4 baseline anomaly from kernel v14 (179 against 162 tokens) may be the same effect. Candidates are `max-autotune` choosing a different GEMM per process and cuBLAS workspace nondeterminism. The row is `chatnano-default-token-run-variation`.
+
+## Speech tokens vary between compiles (open, 2026-11-02)
+
+The fp16 default's tokens are not the same in every process. Tokens for paragraph seed 2 differed between two eager runs (200 against 199 tokens), and seed 3 differed too. What the logits show (`bench/decode_step_logits_probe.py`, paragraph seed 2, 209 decode steps):
+
+- **Prefill (step 0) is identical in every process.** It runs eagerly, with no autotuning.
+- **The first compiled decode step (step 1) is identical across the four warm processes**, which load the compiled kernels from the inductor cache, and across all 209 steps.
+- **Each of four cold processes (empty cache) gives a different step-1 hash.** No two cold runs agree with each other or with the warm runs. The tokens still match on this text, since the logit differences are fp16 rounding and sampling absorbs them.
+- **One cold process gave 200 tokens for seed 2, against 199 in the others.**
+- **The set of CUDA kernels is the same in every cold process** (hashed names), so the difference is a configuration choice inside the same kernels. The likely source is `max-autotune`, which times candidate configurations when a shape is compiled. That is consistent with the cold-only pattern, but not proven.
+
+**Not confirmed:** autotuning off. Compiling without autotuning fails in this torch build (2.14, the `ml` venv) with `aten::scaled_dot_product_attention() ... FakeTensor` on the `scale` argument, so that control is blocked.
+
+**Consequence:** `serve.py` keeps the inductor cache at `~/.cache/chatnano/inductor`, so the server is deterministic after the first compile on a machine. A fresh machine or a cleared cache can round fp16 differently, and sampled tokens can then differ on some texts. Audio-level effect not measured.
+
+**Not done:** a fix. Candidates are to pin the autotuned choice in the cache, or to get the compile without autotuning working (the SDPA scale error). Tracked as the open row `chatnano-default-token-run-variation`.

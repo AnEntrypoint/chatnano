@@ -20,6 +20,7 @@ Run with the `ml` env (torch 2.14.1+cu130, triton 3.8.0), e.g. `python -I tokens
 - `decode_attn_bench.py`: 12-layer decode attention under one CUDA graph, eager against the experimental kernel in `nano_fast/decode_attn.py`, with the max abs difference per cache length.
 - `decode_attn_e2e.py eager|triton OUT.json`: the compiled token loop with one attention mode per process.
 - `decode_attn_tokens.py eager|triton OUT.json`: speech tokens for five seeds and three texts, per mode. Compare the two files, and run eager twice to measure the baseline's own variation.
+- `decode_step_logits_probe.py OUT.json`: per-step logits hashes for one seeded generation. Run warm and cold processes and compare the step lists to find where a run's numbers first change.
 - `serve_bench.py`: the resident server live: startup, cold and warm requests, concurrent requests on one and on two servers.
 - `serve_equiv.py`: a served reply (`?seed=`) against the in-process single-pass render, with a different seed as the control.
 - `natural_length_probe.py`: reply length on varied natural prose at four lengths (speech rate per word). Confirms the 72-word limit is inside the range that completes.
