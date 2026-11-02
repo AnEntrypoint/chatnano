@@ -5,6 +5,9 @@ decode step (`torch.compile(mode="max-autotune")`, eager attention). Speech toke
 `ChatterboxTurboTTS.generate()` for a fixed seed. Three stages are fp16 by default: T3 (with the
 speech head kept in fp32), S3Gen under fp16 autocast with fp32 weights (`enable_fp16_decoder(False)`
 restores fp32), and the watermark runs on the GPU (same decoded message, sample difference about 2e-5).
+The flow's CFM decoder replays as CUDA graphs, one per 64-frame length bucket, captured at server startup
+(`enable_decoder_graphs(False)` runs it eagerly; the mel matches eager in 12 of 12 flow comparisons and the
+generator advances identically). See `bench/README.md` for the checks.
 
 `serve.py` is the resident server: it loads and warms the model once. Each line of the text is a
 paragraph. A paragraph over 72 words is split at sentence ends into chunks of at most 72 words,

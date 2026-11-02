@@ -3,7 +3,8 @@
 Same speech tokens as ChatterboxTurboTTS.generate() for a fixed seed. The autoregressive loop
 differs: prefill runs eagerly, the 1-token decode step is compiled with
 torch.compile(mode="reduce-overhead"), and the cache length is bucketed. Two stages differ by
-default: S3Gen runs under fp16 autocast (enable_fp16_decoder(False) restores fp32), and the
+default: S3Gen runs under fp16 autocast (enable_fp16_decoder(False) restores fp32), its CFM decoder
+replays as CUDA graphs over length buckets (enable_decoder_graphs(False) runs it eagerly), and the
 watermark runs on the GPU. serve.py is the resident server built on this module.
 
 Decode-step timings on RTX 3060 Laptop (6 GB), torch 2.6.0 / cu126, from the first fast-path
@@ -22,9 +23,12 @@ from transformers.generation.logits_process import (
 import torch.nn.functional as F
 
 from chatterbox.tts_turbo import ChatterboxTurboTTS, punc_norm, S3GEN_SIL
+from chatterbox.models.s3gen import decoder as cfm_decoder
 from chatterbox.models.s3gen.s3gen import S3Token2Mel
 
 MAX_NEW_TOKENS = 1000
+DECODER_BUCKET = 64  # mel frames per graph bucket (32 speech tokens)
+DECODER_WARM_FRAMES = 2560  # covers a 1000-token reply: 500 reference frames plus two mel frames per token
 CACHE_BUCKET = 256
 FIRST_BUDGET = 384  # generated tokens the first, tight-cache attempt may use
 STOP_CHECK_EVERY = 16  # steps between host syncs for the stop token (measured faster than a check every step)
@@ -37,6 +41,129 @@ def cut_at_stop_token(tokens, stop_token):
     if stops.numel() > 0:
         return tokens[:, :int(stops[0, 0]) + 1]
     return tokens
+
+
+_chunk_mask = cfm_decoder.add_optional_chunk_mask
+
+
+def _chunk_mask_capture_safe(xs, masks, use_dynamic_chunk, use_dynamic_left_chunk, decoding_chunk_size,
+                             static_chunk_size, num_decoding_left_chunks, *args, **kwargs):
+    # The original ends with a host sync that only warns when a row is all false. Without chunking the masks
+    # are the key mask, which has a valid frame in every row, so that branch never changes the result; it is
+    # skipped while a graph is captured, where a sync is not allowed. Eager calls keep the original.
+    if torch.cuda.is_current_stream_capturing() and not use_dynamic_chunk and static_chunk_size == 0:
+        return masks
+    return _chunk_mask(xs, masks, use_dynamic_chunk, use_dynamic_left_chunk, decoding_chunk_size,
+                       static_chunk_size, num_decoding_left_chunks, *args, **kwargs)
+
+
+cfm_decoder.add_optional_chunk_mask = _chunk_mask_capture_safe
+
+
+class GraphedFlowDecoder:
+    """The S3Gen flow's CFM decoder (meanflow path, batch 1) replayed as one CUDA graph per length bucket.
+
+    The decoder's two Euler steps are about a thousand small kernels per call, and the graph replays them in one
+    launch. Each call pads the real mel length up to the next DECODER_BUCKET, so one graph serves a range of
+    lengths. The padding is zeroed and masked, so it changes the valid frames by rounding only (see
+    bench/decoder_graph_check.py). The noise is drawn the way the eager decoder draws it: randn_like over the real
+    length, from the same generator, so the generator advances as it would without the graph. Any other call goes
+    to the eager forward.
+    """
+
+    def __init__(self, cfm, fp16):
+        self.cfm = cfm
+        self.fp16 = fp16  # callable: True while S3Gen runs under fp16 autocast
+        self.enabled = True
+        self.graphs = {}
+        self.pool = torch.cuda.graph_pool_handle()
+        self._eager_forward = cfm.forward
+        cfm.forward = self.forward  # nn.Module.__call__ looks up forward on the instance
+
+    def forward(self, mu, mask, n_timesteps, temperature=1.0, spks=None, cond=None, noised_mels=None, meanflow=False):
+        if not (self.enabled and meanflow and mu.shape[0] == 1 and noised_mels is not None
+                and spks is not None and cond is not None):
+            return self._eager_forward(mu, mask, n_timesteps, temperature, spks, cond, noised_mels, meanflow)
+        L = mu.shape[2]
+        bucket = -(-L // DECODER_BUCKET) * DECODER_BUCKET
+        # the eager CFM draws z over the real length, then sets its generated tail to noised_mels
+        z = torch.randn_like(mu)
+        z[..., L - noised_mels.shape[2]:] = noised_mels
+        t_span = torch.linspace(0, 1, n_timesteps + 1, device=mu.device, dtype=mu.dtype)
+        key = (bucket, int(n_timesteps), self.fp16(), mu.dtype, mask.dtype, cond.dtype, spks.dtype)
+        entry = self.graphs.get(key)
+        if entry is None:
+            entry = self.graphs[key] = self._new_entry(key, mu.device)
+        static = entry["in"]
+        static["z"].zero_()
+        static["z"][..., :L].copy_(z)
+        static["mu"].zero_()
+        static["mu"][..., :L].copy_(mu)
+        static["mask"].zero_()
+        static["mask"][..., :L].copy_(mask)
+        static["cond"].zero_()
+        static["cond"][..., :L].copy_(cond)
+        static["spks"].copy_(spks)
+        static["t"].copy_(t_span)
+        if entry["graph"] is None:
+            # the first call of a key warms up and captures on the inputs just copied, so the warm-up sees a real mask
+            self._capture(entry)
+        entry["graph"].replay()
+        return entry["out"][..., :L].clone(), None
+
+    def warm(self, max_frames, prompt_len, device="cuda"):
+        """Capture a graph for every bucket up to max_frames, so no request pays for a capture (about 0.5 s each).
+
+        Runs on zeros with the dtypes of a real fp16 call, and puts back the CUDA generator state it drew from.
+        """
+        rng = torch.cuda.get_rng_state(device)
+        was_enabled, self.enabled = self.enabled, True
+        buckets = sorted({-(-length // DECODER_BUCKET) * DECODER_BUCKET
+                          for length in range(prompt_len + 2, max_frames + 1)})
+        try:
+            with torch.inference_mode():
+                for bucket in buckets:
+                    mu = torch.zeros(1, 80, bucket, dtype=torch.float16, device=device)
+                    mask = torch.ones(1, 1, bucket, dtype=torch.float16, device=device)  # a zero mask is not a call
+                    cond = torch.zeros(1, 80, bucket, dtype=torch.float16, device=device)
+                    spks = torch.zeros(1, 80, dtype=torch.float16, device=device)
+                    noised = torch.zeros(1, 80, bucket - prompt_len, dtype=torch.float32, device=device)
+                    self.forward(mu, mask, 2, 1.0, spks, cond, noised, True)
+        finally:
+            self.enabled = was_enabled
+            torch.cuda.set_rng_state(rng, device)
+        return len(self.graphs)
+
+    def _new_entry(self, key, device):
+        bucket, n_timesteps, _, mu_dtype, mask_dtype, cond_dtype, spks_dtype = key
+        static = {
+            "z": torch.zeros(1, 80, bucket, dtype=mu_dtype, device=device),
+            "mu": torch.zeros(1, 80, bucket, dtype=mu_dtype, device=device),
+            "mask": torch.zeros(1, 1, bucket, dtype=mask_dtype, device=device),
+            "cond": torch.zeros(1, 80, bucket, dtype=cond_dtype, device=device),
+            "spks": torch.zeros(1, 80, dtype=spks_dtype, device=device),
+            "t": torch.zeros(n_timesteps + 1, dtype=mu_dtype, device=device),
+        }
+        return {"graph": None, "in": static, "out": None, "fp16": key[2]}
+
+    def _capture(self, entry):
+        static = entry["in"]
+
+        def run():
+            with torch.autocast("cuda", dtype=torch.float16, enabled=entry["fp16"], cache_enabled=False):
+                return self.cfm.basic_euler(static["z"], static["t"], static["mu"], static["mask"],
+                                            static["spks"], static["cond"])
+
+        side = torch.cuda.Stream()
+        side.wait_stream(torch.cuda.current_stream())
+        with torch.cuda.stream(side):
+            for _ in range(2):
+                run()
+        torch.cuda.current_stream().wait_stream(side)
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph, pool=self.pool):
+            out = run()
+        entry["graph"], entry["out"] = graph, out
 
 
 class FastNano:
@@ -59,6 +186,15 @@ class FastNano:
         self.fp16_decoder = True
         self.fp16_t3 = False  # _apply_fp16_t3 flips it
         self._apply_fp16_t3()
+        self.decoder_graphs = GraphedFlowDecoder(model.s3gen.flow.decoder, lambda: self.fp16_decoder)
+
+    def enable_decoder_graphs(self, on=True):
+        # on by default; False runs the flow's CFM decoder eagerly (the output differs by rounding only)
+        self.decoder_graphs.enabled = on
+
+    def warm_decoder_graphs(self, max_frames=DECODER_WARM_FRAMES):
+        # capture every length bucket now, for the reference clip in use (graphs are shared across clips)
+        return self.decoder_graphs.warm(max_frames, self.m.conds.gen["prompt_feat"].shape[1], self.m.device)
 
     def enable_fp16_decoder(self, on=True):
         # default on: S3Gen under fp16 autocast, ~30% faster per clip. Spectral deviation from fp32 is

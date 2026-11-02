@@ -25,6 +25,16 @@ Run with the `ml` env (torch 2.14.1+cu130, triton 3.8.0), e.g. `python -I tokens
 - `serve_bench.py`: the resident server live: startup, cold and warm requests, concurrent requests on one and on two servers.
 - `serve_equiv.py`: a served reply (`?seed=`) against the in-process single-pass render, with a different seed as the control.
 - `natural_length_probe.py`: reply length on varied natural prose at four lengths (speech rate per word). Confirms the 72-word limit is inside the range that completes.
+- `loudness_peaks.py OUT.json`: peak and RMS of reference `generate()` against the fast path over five seeds, the reference first (FastNano halves the T3 in place).
+- `decoder_determinism.py OUT.json`: the flow's CFM decoder draws its noise for the prompt region from the generator, so two eager calls differ unless seeded; checks that the captured inputs are not changed by a call.
+- `flow_graph_probe.py OUT.json`: the CFM decoder alone, eager against one CUDA graph over the same captured inputs, seeded so the replay can be compared exactly.
+- `decoder_graph_check.py OUT.json`: the flow mel and the wav with the decoder graphs off and on, four texts and three seeds, one process; also the warm-up time and graph count.
+- `decoder_graph_time.py OUT.json`: first graphs-on call per text (capture included), then five interleaved rounds of the flow and of generate.
+- `decoder_graph_rng.py OUT.json`: the generator state after the full S3Gen call and the wav, graphs off and on.
+- `decoder_graph_control.py OUT.json TEXT SEED`: generate twice eager and twice graphed, tokens and wav compared, to set the wav differences against run-to-run noise.
+- `decoder_graph_hift.py OUT.json`: the mel that reaches HiFT inside generate(), graphs off and on, with the generator state at that point.
+- `render_graph_wavs.py OUT_DIR`: WAVs of three texts at two seeds, graphs off and on, for `asr_check.py`.
+- `../kaggle/t4_check.py`: the T4 check as a Kaggle script kernel: fresh-process token counts and the audio with whisper-tiny transcripts.
 - `old_tokens.json`: token output of the code before the fast-path changes (`5f16c12` parent). `new_tokens.json`: output of the code at `5d71f59`.
 
 The scripts hard-code `/workspace/chatnano` as the new tree. Comparisons against the pre-change code need a checkout of the older

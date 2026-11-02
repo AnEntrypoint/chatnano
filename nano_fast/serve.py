@@ -87,6 +87,7 @@ class Server:
         with self.lock:  # warm-up: compile the decode step and the vocoder path before serving
             for _ in self.pieces(WARMUP_TEXT):
                 pass
+            self.fast.warm_decoder_graphs()  # so no reply pays for a flow-decoder graph capture
         self.sr = self.model.sr
 
     def too_long(self, text):
