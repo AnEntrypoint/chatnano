@@ -522,7 +522,21 @@ The 72-word refusal for a long paragraph is replaced by chunking. A paragraph ov
 - **Latency:** the first audio of a long paragraph is its first chunk, about 70 words, rather than the first sentence. That is about 2 s for a 70-word chunk. Smaller chunks would lower it at the cost of more joins.
 - **Samples:** `nano_fast/bench/listen_samples.py` wrote `paragraphs.wav` (two paragraphs, 12.68 s) and `long_paragraph.wav` (25.84 s, one join at 14.72 s) to `/tmp/chatnano-local-check/samples/`. Measured, not heard: at 10 ms RMS the signal is below 0.005 for about 0.3 s before the join, the sample value at the join is 0 with no step, and the gap after the first paragraph is 0.4 s. A person still needs to listen.
 
-Consequences: the T4 sampling-speed numbers are not measured, and the 3060 decisions are unchanged. Production has no finiteness guard. No NaN has appeared in any 3060 run, so none was added; a guard in the sampler would be the protection on other hardware if it is ever needed. The suppression of the stop token in the timed loops is kept: it is correct for a loop that never ends, and it does not change the per-step cost.
+Consequences: the 3060 decisions are unchanged. The T4 sampling-speed figures from kernel version 14 are in their own section below. Production has no finiteness guard. No NaN has appeared in any 3060 run, so none was added; a guard in the sampler would be the protection on other hardware if it is ever needed. The suppression of the stop token in the timed loops is kept: it is correct for a loop that never ends, and it does not change the per-step cost.
+
+## Kaggle T4, kernel version 14: 16-step stop check and cleanup
+
+Kernel version 14 ran the suite on a Tesla T4 (torch 2.11.0+cu128, transformers 5.16.1, torchao 0.10.0), to check the 16-step stop check and the removal of the streaming code on the GPU where the device asserts were seen. All 20 jobs finished.
+
+- **Tokens:** the baseline job matches the recorded fp32 tokens on both texts (162 short, 261 long). The attention, speculative, linear-control and int8 jobs match as well.
+- **One baseline mismatch, not explained:** the quant_int4 job's baseline gave 179 tokens on the short text (long identical). It is the only one of six baseline runs that differs. The log has no retry, and the job runs the baseline before its quantisation, so the conversion cannot have changed it. Three fresh processes of the same default on the 3060 gave identical tokens (162 and 261). Open until a targeted T4 rerun of that job settles it.
+- **Device asserts:** none. The log has no device-side assert and no CUDA error line. The probe finds no non-finite logit or probability in 200 decode steps, with and without reduced-precision reduction, and the verify path is finite at every k with both input scales.
+- **Quantisation:** the linear-only control keeps the tokens (LSD 0.0 dB). int8 quantises 48 layers, diverges at token 5, has LSD 21.0 dB, and generates 0.785 s against 0.592 s for the default (33% slower). int4 errors on the fp16 model with `Expected Tensor argument zeros to have dtype float16, but got bfloat16`, as before. Its bf16 result is in the section below.
+- **Sampling:** host sampling takes 1.88 ms per token and the in-graph sampler 1.83 ms (1.03x), so it stays within noise. The `_dbg` and `_eager` variants change the timing (`CUDA_LAUNCH_BLOCKING`, uncompiled step), and their speedups (1.63x and 6.97x) are not production costs.
+- **Compile modes (decode step):** default 3.89 ms, reduce-overhead 2.88 ms, max-autotune 2.79 ms. max-autotune also has the shortest first call (3.4 s, against 12.3 s and 8.6 s), which agrees with the adopted choice.
+- **Vocoder:** full 201 ms, flow 139 ms, HiFT 62 ms. cuDNN benchmark gives 61 ms, so no gain. HiFT compile still fails with `BackendCompilerFailed`.
+- **Verify and speculation:** verify GPU time is 1.50x at k=8 and 1.46x at k=16 against k=1. Speculative acceptance is 0.14, 0.17, 0.21 and 0.43 at depths 4, 6, 8 and 10, as before, so speculation stays rejected.
+- **Cache curve:** the step takes 2.62 ms at a 128-slot cache and 3.12 ms at 1000, as before.
 
 ## int4 and bf16 T3, measured on the RTX 3060
 
