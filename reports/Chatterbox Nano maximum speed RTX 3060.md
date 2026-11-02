@@ -94,6 +94,8 @@ Bench scripts and token outputs are in `nano_fast/bench/` (see its README). The 
 
 A listening check of the pairs in `nano_fast/bench/ab/` found no audible difference between fp32 and fp16 S3Gen. `FastNano` now runs S3Gen under fp16 autocast by default. `enable_fp16_decoder(False)` restores fp32. Tokens are unchanged. Repeated fp16 runs differ from each other by about 6e-4 (GPU kernel nondeterminism), against about 0.03 between fp16 and fp32.
 
+*Superseded in part, 2026-11-02:* a later change also stored S3Gen's weights in half, and that garbled the speech. The autocast design above is in force again, with fp32 weights. See "Scrambled speech: S3Gen weights in half" at the end of this report.
+
 ## Decision: sentence chunking for time to first audio
 
 *Superseded: sentence chunking was rejected, and `generate_chunks()` no longer exists. The measurements stand; the recommendation does not. See the closed decisions below.*
@@ -554,3 +556,47 @@ The last open item from the quantisation work. torchao's int4 weight-only path n
 - **Decision:** rejected for the default. The gain is 37–51 ms per reply, and it would change the speech of every reply. No LSD or listening check was run on the int4 audio, because the tokens already differ.
 - **Memory:** `peak_mb` is not comparable across modes. The bf16 modes leave S3Gen in fp32 (2085 MB against 1773 MB for the default, which runs S3Gen in fp16).
 - **Not run on the T4:** the decision does not depend on the T4, and the Kaggle suite has no bf16 path.
+
+## Scrambled speech: S3Gen weights in half (fixed 2026-11-02)
+
+A listener heard the default's samples as a voice with scrambled phonemes. Whisper-tiny transcripts (`nano_fast/bench/asr_check.py`) confirmed it. The reference `generate()` and the fp32 path transcribe correctly. The default garbled the second half of the reply, and the paragraphs and the long paragraph were badly garbled.
+
+The T3 was not the cause. The fast path's speech tokens for seed 0 are identical to the reference's. Crossing the tokens with the vocoder precision, all at the same seed, located the fault in the flow:
+
+| Render (same text, seed 0) | Transcript | LSD vs fp32 |
+|---|---|---|
+| reference `generate()`, fp32 | correct | (reference) |
+| reference tokens, fp32 vocoder | correct | |
+| fast tokens, fp32 vocoder | correct | |
+| fast tokens, fp16 vocoder (the old default) | garbled | |
+| reference tokens, fp16 vocoder | garbled | |
+
+Splitting the vocoder into the flow (tokens to mel) and HiFT (mel to waveform), with `bench/vocoder_variants.py`:
+
+| Variant | Transcript | LSD vs fp32 | Vocoder time |
+|---|---|---|---|
+| all fp32 | correct | (reference) | 222 ms |
+| flow fp32 weights, HiFT fp16 weights | correct | 1.40 dB | 212 ms |
+| flow fp16 weights, HiFT fp32 | garbled | 11.81 dB | 159 ms |
+| all fp16 weights (the old default) | garbled | 11.83 dB | 145 ms |
+| flow fp32 under fp16 autocast, HiFT fp32 | correct | 0.92 dB | 161 ms |
+| flow fp32 under fp16 autocast, HiFT fp16 weights | correct | 1.48 dB | 150 ms |
+| whole S3Gen fp32 under fp16 autocast (the default now) | correct | 1.47 dB | 163 ms |
+
+The fault is the flow with its weights in half. HiFT in half is harmless. The variants all draw the same flow noise, so the LSD columns differ only by precision.
+
+**Decision:** S3Gen keeps fp32 weights and runs under fp16 autocast, the design from the first listening check. HiFT stays under the same autocast, which is the configuration measured at 1.47 dB. The `enable_fp16_decoder(False)` switch restores the fp32 decoder. Checked in one process with identical noise (`bench/decoder_same_noise.py`): the default is 1.22 dB from the fp32 decoder, and both transcribe correctly.
+
+- **Cost:** S3Gen has 266 M parameters. fp32 is 1015 MB and fp16 is 507 MB, so the fp32 weights use about 508 MB more VRAM in steady state. The short text generates in 0.48 s (median of 5).
+- **Earlier claims:** the 0.265 dB LSD for half-stored S3Gen, written in the code comment, could not be reproduced. Half storage measures 11.8 dB today with the same tokens and seed. The listening check covered the autocast design; the later change to half weights had no listening or intelligibility check.
+- **Served output:** `bench/serve_equiv.py` still passes after the fix (max abs difference 0.0005 to 0.0007, control 0.65).
+- **Samples:** `/tmp/chatnano-local-check/samples/paragraphs.wav` and `long_paragraph.wav` were re-rendered. The transcripts now match the text, apart from small word changes such as "Um" heard as "I'm".
+
+**Lessons for future audio changes:**
+- Run `asr_check.py` on the two samples before shipping an audio change.
+- Compare LSD only between renders that draw the same flow noise. The noise comes from the RNG state left by the T3 sampling, so the same text with a different reseed gives about 10 dB LSD with the same content. The reference `generate()` and the fast path differ in this way too.
+- The `peak_mb` values in earlier sections are load-time peaks, because `max_memory_allocated` is never reset. They are not steady-state figures.
+
+**Not changed, noted:** the reference `generate()` applies loudness normalisation and the fast path does not. The fast path's output is louder (peak 0.56 to 0.63 against 0.52 for the reference on the check text). Its effect on the audio has not been tested.
+
+**Kaggle T4:** kernel version 14 ran the half-stored default. Its token and probe results do not depend on the vocoder, but its audio was never checked, so the T4 has not been validated for this fix.

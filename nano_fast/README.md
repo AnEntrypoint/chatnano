@@ -3,8 +3,8 @@
 `fast_nano.py` runs Nano's autoregressive loop with a static KV cache and a compiled
 decode step (`torch.compile(mode="max-autotune")`, eager attention). Speech tokens match
 `ChatterboxTurboTTS.generate()` for a fixed seed. Three stages are fp16 by default: T3 (with the
-speech head kept in fp32), S3Gen under fp16 (`enable_fp16_decoder(False)` restores fp32), and
-the watermark runs on the GPU (same decoded message, sample difference about 2e-5).
+speech head kept in fp32), S3Gen under fp16 autocast with fp32 weights (`enable_fp16_decoder(False)`
+restores fp32), and the watermark runs on the GPU (same decoded message, sample difference about 2e-5).
 
 `serve.py` is the resident server: it loads and warms the model once. Each line of the text is a
 paragraph. A paragraph over 72 words is split at sentence ends into chunks of at most 72 words,

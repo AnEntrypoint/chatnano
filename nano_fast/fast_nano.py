@@ -87,13 +87,10 @@ class FastNano:
                 setattr(self.m.conds.t3, k, v.half())
         self._head_weight_f32 = self.t3.speech_head.weight.detach().float().contiguous()
 
-        # the vocoder too: storing its weights in half saves about 861 MB of VRAM and about
-        # 508 MB of RSS. Measured LSD 0.265 dB against a 0.097 dB fp32-vs-fp32 control, tokens
-        # identical, so it sits well under the 1.5 dB bar judged inaudible earlier.
-        self.m.s3gen.half()
-        for k, v in list(self.m.conds.gen.items()):
-            if torch.is_tensor(v) and v.is_floating_point():
-                self.m.conds.gen[k] = v.half()
+        # S3Gen keeps fp32 weights and runs under fp16 autocast (generate). Storing its weights in
+        # half garbled the speech: with the same tokens and seed the flow's mel came out scrambled
+        # (transcripts wrong, LSD 11.8 dB against fp32). Autocast over fp32 weights transcribes
+        # like fp32 with LSD 1.47 dB. The half-stored figure of 0.265 dB could not be reproduced.
         self._head_bias_f32 = (self.t3.speech_head.bias.detach().float().contiguous()
                               if self.t3.speech_head.bias is not None else None)
         self._step = self._fp16_step            # prefill calls _step
