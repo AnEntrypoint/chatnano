@@ -600,3 +600,25 @@ The fault is the flow with its weights in half. HiFT in half is harmless. The va
 **Not changed, noted:** the reference `generate()` applies loudness normalisation and the fast path does not. The fast path's output is louder (peak 0.56 to 0.63 against 0.52 for the reference on the check text). Its effect on the audio has not been tested.
 
 **Kaggle T4:** kernel version 14 ran the half-stored default. Its token and probe results do not depend on the vocoder, but its audio was never checked, so the T4 has not been validated for this fix.
+
+## Decode attention kernel (rejected, 2026-11-02)
+
+The last open speed item from the list: one fused kernel per layer for the decode step's attention (`nano_fast/decode_attn.py`). Public references: NVIDIA Model-Optimizer PRs [#1624](https://github.com/NVIDIA/Model-Optimizer/pull/1624) and [#1634](https://github.com/NVIDIA/Model-Optimizer/pull/1634/files) (split-KV `attention_decode` with a combine kernel), [ColossalAI's flash-decoding](https://github.com/hpcaitech/ColossalAI/commit/2d62aca0aed840da8c76fd3feadae1b5d82e45ab), [Triton-distributed's flash decode](https://triton-distributed.readthedocs.io/en/latest/kernels/nvidia/flash_decode.html), and [LongFlow](https://arxiv.org/pdf/2603.11504) (static cache with a fused decode kernel).
+
+The design is a split-KV kernel, 64 cache slots per program, with an online softmax, then a combine kernel with log-sum-exp rescaling. Prefill keeps eager. It is installed as a `torch.library` custom op, so `torch.compile` captures the kernels in the CUDA graph.
+
+- **Attention alone, 12 layers under CUDA graphs** (`bench/decode_attn_bench.py`, each layer with its own K and V): eager 189 us against 85 us at 384 slots, 46 to 64% less across 256 to 1024 slots. Max abs difference from eager is 3.7e-4 to 4.9e-4, which is fp16 rounding.
+- **End to end, compiled token loop** (`bench/decode_attn_e2e.py`, one process per mode): short 310.7 ms eager against 303.4 ms, a 2.3% gain. Long 479.2 ms against 467.8 ms, a 2.4% gain.
+- **Kernels inside the loop**: a profiled generation shows `_partial` and `_combine` run in the compiled step, 12 calls per token. Per token, `_partial` takes 0.154 ms and `_combine` 0.019 ms, against 1.595 ms of GPU time per token in total.
+- **Tokens** (`bench/decode_attn_tokens.py`, five seeds, three texts): the kernel differs from eager on 3 of 15 pairs. A second eager run differs from the first on 2 of 15 pairs. The default is not deterministic across processes either, so token identity can't be the bar here, and the kernel's rate is not clearly above the baseline's own.
+
+**Why the estimate was wrong:** the 15% estimate came from eager attention under CUDA graphs, where about ten small kernels per layer each cost launch latency. Under `torch.compile`, inductor already fuses most of those ops, so the saving over the compiled step is much smaller than the saving over the graph microbench. A sweep of chunk size (32 to 256), block size and warp count moved the kernel by under 10%, so the remaining cost is launch latency, not the configuration.
+
+**Decision:** rejected for the default. A 2.4% gain does not justify a Triton dependency, a process-wide patch of the transformers attention function, and a change in the sampled tokens on some seeds. The code stays in `nano_fast/decode_attn.py`, marked as an experiment and not installed.
+
+**Engineering notes**, for any future custom kernel under `torch.compile`:
+- A Python float argument reaches inductor as fp64, so the kernel casts it to fp32 first. A `float("-inf")` in `tl.where` widens the loop-carried max to fp64 for the same reason.
+- Calling a Triton kernel directly from the step traces it into the graph and failed to fuse cleanly. The custom op is the reliable route.
+- `max_memory_allocated` in these benches is a load-time peak, as noted above.
+
+**Open, filed as a row:** the default's own tokens vary between processes on 2 of 15 pairs. The T4 baseline anomaly from kernel v14 (179 against 162 tokens) may be the same effect. Candidates are `max-autotune` choosing a different GEMM per process and cuBLAS workspace nondeterminism. The row is `chatnano-default-token-run-variation`.
