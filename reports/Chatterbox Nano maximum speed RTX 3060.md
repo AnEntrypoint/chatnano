@@ -531,7 +531,7 @@ Consequences: the 3060 decisions are unchanged. The T4 sampling-speed figures fr
 Kernel version 14 ran the suite on a Tesla T4 (torch 2.11.0+cu128, transformers 5.16.1, torchao 0.10.0), to check the 16-step stop check and the removal of the streaming code on the GPU where the device asserts were seen. All 20 jobs finished.
 
 - **Tokens:** the baseline job matches the recorded fp32 tokens on both texts (162 short, 261 long). The attention, speculative, linear-control and int8 jobs match as well.
-- **One baseline mismatch, not explained:** the quant_int4 job's baseline gave 179 tokens on the short text (long identical). It is the only one of six baseline runs that differs. The log has no retry, and the job runs the baseline before its quantisation, so the conversion cannot have changed it. Three fresh processes of the same default on the 3060 gave identical tokens (162 and 261). Open until a targeted T4 rerun of that job settles it.
+- **One baseline mismatch, not explained:** the quant_int4 job's baseline gave 179 tokens on the short text (long identical). It is the only one of six baseline runs that differs. The log has no retry, and the job runs the baseline before its quantisation, so the conversion cannot have changed it. Three fresh processes of the same default on the 3060 gave identical tokens (162 and 261). Open until a targeted T4 rerun of that job settles it. The rerun (ten fresh processes on the T4, see the T4 check below) gave 162 every time, so this single 179 did not recur, and its cause is still unexplained.
 - **Device asserts:** none. The log has no device-side assert and no CUDA error line. The probe finds no non-finite logit or probability in 200 decode steps, with and without reduced-precision reduction, and the verify path is finite at every k with both input scales.
 - **Quantisation:** the linear-only control keeps the tokens (LSD 0.0 dB). int8 quantises 48 layers, diverges at token 5, has LSD 21.0 dB, and generates 0.785 s against 0.592 s for the default (33% slower). int4 errors on the fp16 model with `Expected Tensor argument zeros to have dtype float16, but got bfloat16`, as before. Its bf16 result is in the section below.
 - **Sampling:** host sampling takes 1.88 ms per token and the in-graph sampler 1.83 ms (1.03x), so it stays within noise. The `_dbg` and `_eager` variants change the timing (`CUDA_LAUNCH_BLOCKING`, uncompiled step), and their speedups (1.63x and 6.97x) are not production costs.
@@ -597,9 +597,9 @@ The fault is the flow with its weights in half. HiFT in half is harmless. The va
 - Compare LSD only between renders that draw the same flow noise. The noise comes from the RNG state left by the T3 sampling, so the same text with a different reseed gives about 10 dB LSD with the same content. The reference `generate()` and the fast path differ in this way too.
 - The `peak_mb` values in earlier sections are load-time peaks, because `max_memory_allocated` is never reset. They are not steady-state figures.
 
-**Not changed, noted:** the reference `generate()` applies loudness normalisation and the fast path does not. The fast path's output is louder (peak 0.56 to 0.63 against 0.52 for the reference on the check text). Its effect on the audio has not been tested.
+**Loudness:** the earlier note that the reference normalises and the fast path does not was wrong about the output. Neither normalises it, and the peaks match over five seeds. See "Flow decoder graphs, and loudness parity" below.
 
-**Kaggle T4:** kernel version 14 ran the half-stored default. Its token and probe results do not depend on the vocoder, but its audio was never checked, so the T4 has not been validated for this fix.
+**Kaggle T4:** kernel version 14 ran the half-stored default. Its token and probe results do not depend on the vocoder, but its audio was never checked. The fixed code was checked on the T4 later (see the T4 check below).
 
 ## Decode attention kernel (rejected, 2026-11-02)
 
@@ -621,7 +621,7 @@ The design is a split-KV kernel, 64 cache slots per program, with an online soft
 - Calling a Triton kernel directly from the step traces it into the graph and failed to fuse cleanly. The custom op is the reliable route.
 - `max_memory_allocated` in these benches is a load-time peak, as noted above.
 
-**Open, filed as a row:** the default's own tokens vary between processes on 2 of 15 pairs. The T4 baseline anomaly from kernel v14 (179 against 162 tokens) may be the same effect. Candidates are `max-autotune` choosing a different GEMM per process and cuBLAS workspace nondeterminism. The row is `chatnano-default-token-run-variation`.
+**Open, filed as a row:** the default's own tokens vary between processes on 2 of 15 pairs. The T4 baseline anomaly from kernel v14 (179 against 162 tokens) may be the same effect. It was not reproduced in ten fresh processes on the T4 (see the T4 check below). Candidates are `max-autotune` choosing a different GEMM per process and cuBLAS workspace nondeterminism. The row is `chatnano-default-token-run-variation`.
 
 ## Speech tokens vary between compiles (documented, 2026-11-02)
 
@@ -648,4 +648,55 @@ The fp16 default's tokens are not the same in every process. Tokens for paragrap
 - **Audio effect:** the two streams for paragraph seed 2 (200 tokens from the first eager run, 199 from the second) render through the production S3Gen path with the same flow seed. Both transcribe to the same text, except one comma. The 8.9 dB LSD between the two WAVs mostly reflects the one-token timing shift, so the transcript is the better measure here.
 
 **Decision (default):** keep `max-autotune`. A fresh compile can change a token on some text, but the content does not change in the tested case, and the speed cost of autotuning off is larger than that effect. The server keeps its inductor cache at `~/.cache/chatnano/inductor`, so after the first compile on a machine its output is the same from run to run. Bit-for-bit reproducibility across fresh compiles is available through `bench/compile_mode_e2e.py autotune-off`, at the measured cost.
+
+
+## Flow decoder graphs, and loudness parity (2026-11-02)
+
+**Loudness parity (open item from the scrambled-speech fix, now closed).** The fast path and reference `generate()` take their speaker conditionals from the same `prepare_conditionals(norm_loudness=True)`, and neither normalises the output (`generate()` returns the watermarked wav as is). Measured over five seeds on the short text (`bench/loudness_peaks.py`): reference peak 0.495 to 0.601 (mean 0.536), fast path 0.496 to 0.567 (mean 0.527); RMS 0.050 to 0.061 for the reference and 0.053 to 0.061 for the fast path. Seed by seed the peaks differ by up to 0.08, the scatter of a single-sample statistic on a different decoder precision, not a level offset: the means are within 0.01 and the distributions overlap. The earlier 0.56 to 0.63 figure was one seed. **No loudness gap in the output path.**
+
+**The change.** The S3Gen flow's CFM decoder, the two-step Euler solve in meanflow mode, is about 100 ms of the roughly 160 ms vocoder call for a 6.6 s reply on this card, and it is about a thousand small kernels per call. `nano_fast/fast_nano.py` (`GraphedFlowDecoder`) replays it as one CUDA graph per 64-frame bucket of mel length. Each call pads the real length up to its bucket, with zeros and a mask. The noise is drawn exactly as the eager decoder draws it (`randn_like` over the real length, from the same generator), so the generator advances as it would without the graph. `FastNano.warm_decoder_graphs()` captures all 33 buckets up to 2560 frames (a 1000-token reply) at startup, in about 16 s, and `serve.py` calls it after its warm-up, so no request pays for a capture. Without the warm-up, the first call in each new bucket takes 0.37 to 0.58 s, against 0.04 to 0.10 s once captured.
+
+**Measured** (`bench/decoder_graph_time.py`, RTX 3060, five interleaved rounds, medians; generate is seeded so both modes sample the same tokens):
+
+| text (speech tokens) | flow eager | flow graph | generate eager | generate graph |
+|---|---|---|---|---|
+| hello (23) | 105.5 ms | 44.0 ms | 191.6 ms | 132.1 ms |
+| short (165) | 115.4 ms | 63.6 ms | 493.1 ms | 443.6 ms |
+| paragraph (206) | 124.7 ms | 85.3 ms | 599.8 ms | 570.0 ms |
+| long (264) | 123.9 ms | 96.7 ms | 754.9 ms | 705.1 ms |
+
+Run-to-run the generate figures move by about 30 to 50 ms with the GPU's temperature (a separate run gave short 538 to 476 ms and long 760 to 787 ms, so the long text's gain is not clear). The flow saving is the one that holds: 27 to 61 ms per reply, about 52 ms (11%) on the short reply.
+
+**Equivalence**, against the eager decoder in the same process, same weights, same seeds:
+- **Mel:** identical in 12 of 12 flow comparisons (`bench/decoder_graph_check.py`: four texts, three seeds, max abs difference 0.0). In `generate()` the mel reaching HiFT differed in one case, by 0.012 at its largest, which is one fp16 rounding step (`bench/decoder_graph_hift.py`, paragraph seed 1). The generator state at that point was identical.
+- **Generator:** the CUDA generator state after the full S3Gen call is the same with the graphs off and on, for two seeds (`bench/decoder_graph_rng.py`).
+- **Wav, control first:** on this card two eager runs of the same seed differ by 0.0005 to 0.0008 (max abs), and two graph runs by 0.0005 to 0.0008 (`bench/decoder_graph_control.py`, paragraph seed 1 and short seed 0). On the T4 two eager runs are identical (see the T4 check below). Eager against graphs differs by 0.0006 on short seed 0 and 0.057 on paragraph seed 1, the case with the mel rounding step. Over the 12 pairs of `decoder_graph_check.py`, the LSD (1024/256 STFT) is 0.0 to 0.64 dB. The fp16 flow against fp32 measured 1.47 dB earlier, so this is smaller than the precision choice that was already accepted.
+- **Intelligibility:** Whisper-tiny transcripts are identical for all six eager and graph pairs (three texts, two seeds, `bench/render_graph_wavs.py` then `asr_check.py`). The Whisper errors in the two modes match each other and are not caused by the graphs.
+
+**Decision: the graphs are on by default.** The output is not bit-identical to the eager decoder. The difference is at the rounding level in the mel, and HiFT carries it into a waveform difference of 0.2 to 0.9 dB LSD. Every transcript is unchanged and the distance to the fp32 reference does not grow. The listening pairs are in the T4 section below; if they sound different, `enable_decoder_graphs(False)` and dropping the warm-up call in `serve.py` restore the eager path.
+
+**Engineering notes.**
+- Capture needs a sync-free decoder. Inside it, `add_optional_chunk_mask` ends with a host sync that only warns when a row is all false. Without chunking, the mask has a valid frame in every row, so the warning never fires. `fast_nano.py` skips that sync only while a graph is captured; eager calls keep the original.
+- The chatterbox `s3gen/utils/mask.py` warning branch calls `logging.warning`, but the module does not import `logging`. It would raise `NameError` on a row that is all false. It is not reached for these inputs, and it is worth fixing upstream.
+- The graphs are shared across reference clips (the key is the bucket and dtypes, not the prompt length). `warm_decoder_graphs()` uses the prompt length of the clip in use, so it must be called again for a clip with a different prompt length.
+- The first call of a key warms up and captures on the inputs it has just copied, so the warm-up sees a real mask.
+
+**Not done, and why.**
+- **HiFT in graphs.** Not tested. HiFT's convolutions see the end of the mel as the edge of the sequence, so padding the mel to a bucket would change the last valid frames (reasoned, not measured). That points to one graph per exact length, at about 0.5 s of capture per new length.
+- **Fusing the attention combine into the partial kernel.** An estimate of at most 1 to 2% of the token loop, from the attention share of 0.18 ms of 1.6 ms per token. Not measured.
+- **Pipelining long texts** (the vocoder of one chunk while T3 decodes the next). It would raise throughput for multi-chunk replies. It does not change time to first audio, and it needs two CUDA streams in the serving path. Not measured.
+
+
+## Kaggle T4 check of the S3Gen fix and the decoder graphs (2026-11-02)
+
+Kaggle kernel `heclgang/chatnano-t4-check` (private), run as version 3 and as version 4, which adds an eager-against-eager control. Script: `nano_fast/kaggle/t4_check.py`. The current `nano_fast/*.py` is in the private dataset `heclgang/chatnano-nano-fast`; the weights come from the hub. The T4 was run on the code as committed here.
+
+- **Tokens, fresh processes:** ten processes, five per version. Short text 162 tokens and long text 261 tokens at seed 0, every process identical (md5 of the token list 9a8200c7dc and f0c43dea53). Kernel v14 gave 179 once in six baseline runs; that did not recur.
+- **Transcripts (whisper-tiny):** three texts, two seeds. The reference `generate()`, the fast path with decoder graphs off, and with them on: the four transcripts are identical in all six pairs.
+- **Distance to the fp32 reference (LSD, 1024/256 STFT):** eager 0.99 to 1.44 dB, mean 1.136; graphs 0.99 to 1.43 dB, mean 1.127. The graph path is not further from the reference than eager is.
+- **Eager against eager (control): 0.0 dB, bit-identical** on the T4. On the 3060 two eager runs differ by about 0.0007 (max abs).
+- **Eager against graphs: 0.53 to 0.88 dB** LSD on the T4 (short 0.67 and 0.88, long 0.57 and 0.53, paragraph 0.59 and 0.67). That difference is systematic, not run-to-run noise, and it is at rounding level in the mel (see the decoder graph section). It is larger than the 3060's 0.21 to 0.36 dB on the short and long texts.
+- **Generate medians, T4, three rounds** (v4; v3 in brackets): short 587 to 514 ms (590 to 529), long 808 to 766 ms (830 to 798), paragraph 656 to 596 ms (672 to 616). The 33 graphs take 19 to 20 s to warm up.
+
+**Reading.** The T4 confirms that the S3Gen fix transcribes like the reference, and that the graph path does not move the output away from the reference. The graph output is not bit-identical to eager on either card. Whether the 0.5 to 0.9 dB difference is audible is a listening question. The pairs to listen to are the T4 files `/tmp/chatnano-kaggle/t4-out/wav/short_s1_eager.wav` and `/tmp/chatnano-kaggle/t4-out/wav/short_s1_graph.wav` (0.88 dB, the largest) in the v4 output, and on the 3060 `/tmp/chatnano-local-check/graphs/paragraph_s1_eager.wav` and `paragraph_s1_graph.wav` (the largest waveform difference, 0.057 max abs).
 
