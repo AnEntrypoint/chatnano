@@ -623,7 +623,7 @@ The design is a split-KV kernel, 64 cache slots per program, with an online soft
 
 **Open, filed as a row:** the default's own tokens vary between processes on 2 of 15 pairs. The T4 baseline anomaly from kernel v14 (179 against 162 tokens) may be the same effect. Candidates are `max-autotune` choosing a different GEMM per process and cuBLAS workspace nondeterminism. The row is `chatnano-default-token-run-variation`.
 
-## Speech tokens vary between compiles (open, 2026-11-02)
+## Speech tokens vary between compiles (documented, 2026-11-02)
 
 The fp16 default's tokens are not the same in every process. Tokens for paragraph seed 2 differed between two eager runs (200 against 199 tokens), and seed 3 differed too. What the logits show (`bench/decode_step_logits_probe.py`, paragraph seed 2, 209 decode steps):
 
@@ -638,3 +638,14 @@ The fp16 default's tokens are not the same in every process. Tokens for paragrap
 **Consequence:** `serve.py` keeps the inductor cache at `~/.cache/chatnano/inductor`, so the server is deterministic after the first compile on a machine. A fresh machine or a cleared cache can round fp16 differently, and sampled tokens can then differ on some texts. Audio-level effect not measured.
 
 **Not done:** a fix. Candidates are to pin the autotuned choice in the cache, or to get the compile without autotuning working (the SDPA scale error). Tracked as the open row `chatnano-default-token-run-variation`.
+
+**Resolution, 2026-11-02.** The source is `max-autotune`. Its choice of kernel configuration is timed when a shape is compiled, so each fresh compile can pick differently, and the choices round fp16 differently.
+
+- **Autotuning off** (`bench/compile_mode_e2e.py autotune-off`, which also turns off the attention-fusion pass because it fails on eager attention's tensor divisor): four fresh-cache compiles are bit-identical at every one of the 209 steps. This is the only setting tested that is deterministic across cold compiles.
+- **Autotuning restricted to the ATen (cuBLAS) backend, mode kept:** still varies (two distinct step-1 hashes in three cold compiles). The variation is in the cuBLAS algorithm choice too.
+- **Speed of the two modes**, token loop, short and long text, three repeats each: max-autotune 344, 429, 433 ms short and 514, 598, 680 ms long. Autotune-off 340, 544, 465 ms short and 609, 747, 705 ms long. The GPU drifted upward across repeats (79 C, SM clock 1605 of 2100 MHz), so these are rough, but autotune-off comes out about 8 to 18% slower.
+- **Tokens** matched across all six timing runs of both modes, on both texts.
+- **Audio effect:** the two streams for paragraph seed 2 (200 tokens from the first eager run, 199 from the second) render through the production S3Gen path with the same flow seed. Both transcribe to the same text, except one comma. The 8.9 dB LSD between the two WAVs mostly reflects the one-token timing shift, so the transcript is the better measure here.
+
+**Decision (default):** keep `max-autotune`. A fresh compile can change a token on some text, but the content does not change in the tested case, and the speed cost of autotuning off is larger than that effect. The server keeps its inductor cache at `~/.cache/chatnano/inductor`, so after the first compile on a machine its output is the same from run to run. Bit-for-bit reproducibility across fresh compiles is available through `bench/compile_mode_e2e.py autotune-off`, at the measured cost.
+

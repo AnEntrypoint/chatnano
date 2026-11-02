@@ -6,9 +6,16 @@ Usage: python3 -I decode_step_logits_probe.py OUT.json
 """
 import hashlib
 import json
+import os
 import sys
 
 import torch
+import torch._inductor.config as icfg
+
+# PROBE_ATEN_ONLY=1: autotune among cuBLAS (ATen) algorithms only; PROBE_NOAUTOTUNE=1: autotuning off (see
+# compile_mode_e2e.py). Unset, the probe measures the default max-autotune compile.
+if os.environ.get("PROBE_ATEN_ONLY"):
+    icfg.max_autotune_gemm_backends = "ATEN"
 
 sys.path.insert(0, "/workspace/chatnano/chatterbox/src")
 sys.path.insert(0, "/workspace/chatnano/nano_fast")
@@ -18,6 +25,10 @@ from fast_nano import FastNano  # noqa: E402
 TEXT = ("The new model arrived last week, and the team has been testing it against the old one for "
         "three days. Most of the difference is in the first two seconds of each reply.")
 out_path = sys.argv[1]
+if os.environ.get("PROBE_NOAUTOTUNE"):
+    icfg.pattern_matcher = False
+    _compile = torch.compile
+    torch.compile = lambda f, **kw: _compile(f, **{**{k: v for k, v in kw.items() if k != "mode"}, "options": {"triton.cudagraphs": True, "max_autotune": False, "max_autotune_gemm": False}})
 base = ChatterboxTurboTTS.from_local("/workspace/chatsrc/chatnano-fp16", device="cuda", nano=True)
 fast = FastNano(base)
 hashes = []
