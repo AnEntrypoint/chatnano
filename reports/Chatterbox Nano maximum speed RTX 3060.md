@@ -228,12 +228,13 @@ Decision: the causal checkpoint does not supply natural streaming, because the a
 
 ## Optimizations measured and rejected (do not redo)
 
-All four were built or benchmarked on this RTX 3060 Laptop and lost:
+All five were built or benchmarked on this RTX 3060 Laptop and lost:
 
 - **Manual CUDA-graph capture of the decode step.** `torch.cuda.CUDAGraph` replay measured 4656 us against the current `torch.compile(reduce-overhead)` step at 4577 us — no gain. The step is not launch-bound; a manual graph buys nothing over what reduce-overhead already does.
 - **Finer cache buckets.** The step does scale with cache padding (step ≈ 1572 us + 2.28 us per cache slot; 512 → 2739 us, 1024 → 3575 us, 2048 → 6240 us), but bucket sizes 128 and 64 changed nothing end to end: 1.01 s / 1.60 s vs 1.01 s / 1.58 s for the same two texts. Tokens stayed identical.
 - **A smaller first budget.** `FIRST_BUDGET=192` with bucket 128 made the short reply faster (1.04 s → 0.92 s) but the long reply far slower (1.61 s → 3.05 s), because it forces a retry with a recompile. Keep 384.
 - **A vectorized repetition penalty.** Replacing HF's processor (O(history) ≈ 200 elements) with an O(vocab) seen-mask (6563 elements) was ~4% slower: 1.055 s / 1.672 s against 1.01 s / 1.60 s. Tokens were identical, so the maths is right; the constant factor is worse. Reverted.
+- **int4 and bf16 T3 weight-only.** Both change the speech tokens. int4 is 16% faster than fp16 on the short token loop and 8% on the long one, but the bf16 cast alone is not output-neutral. Measured in full at the end of this report; rejected.
 
 Where the time actually goes, per step at a 121-token history: compiled step 4377 us, sampling chain 522 us (of which the whole processor chain is 411 us), speech embedding 24 us, history `torch.cat` 34 us. The step dominates and is compute/memory, not launch overhead.
 
@@ -448,7 +449,7 @@ Failed on the T4 with a device-side assert, and not seen locally:
 - **Probe, rejects the overflow cause:** the decode loop (200 steps, finiteness checked each step) and the verify path (k = 1 to 16, at the real embedding scale and at unit scale) produced no non-finite values, with and without fp16 reduced-precision reduction. Max absolute logit stayed between 14 and 28.
 - **Linear-only control (Conv1D converted to Linear, no quantisation):** identical tokens and identical audio on the T4 (LSD 0.0 dB). On the 3060 the same control gave 0.41 dB, within the noise floor.
 - **int8 weight-only, 48 layers quantised:** tokens diverge at token 5, LSD 21 dB, and generation 0.782 s against 0.612 s for the default (28% slower). Not viable on the T4 either.
-- **int4 weight-only: not measured.** torchao 0.10's int4 path requires bf16 activations (`Expected Tensor argument zeros to have dtype torch.float16, but got torch.bfloat16`). The fp16 path cannot take it without changing the model's dtype.
+- **int4 weight-only: not run on the T4.** torchao's int4 path requires bf16 activations (`Expected Tensor argument zeros to have dtype torch.float16, but got torch.bfloat16`), so the fp16 default cannot take it. The bf16 result is measured on the 3060, in the section on int4 and bf16 T3 at the end of this report.
 - **Sampling distribution, again:** total variation host against graph 0.0043, host against host control 0.0099.
 
 Still failing on the T4, cause not identified:
@@ -484,7 +485,7 @@ Reproduced on the 3060 with transformers 5.16.1 installed in a scratch directory
 - **Verify, profiler GPU ms:** k = 1 2.82, k = 8 4.23, k = 16 4.10. The event-timed run (`verify_events`) measures wall-like time, not GPU time, so its numbers are not comparable.
 - **Speculative acceptance:** depth 4 0.136, depth 6 0.173, depth 8 0.213, depth 10 0.431, the same as before.
 - **Vocoder:** 384 mel frames, full 208.5 ms, flow by difference 147.8 ms, HiFT 60.7 ms. cuDNN benchmark gave 65.3 ms, so no gain. HiFT compile still fails with `BackendCompilerFailed`.
-- **Quantisation:** the linear-only control gives identical tokens and LSD 0.0 on the T4. int8 quantises 48 layers, tokens diverge at token 5, LSD 21 dB, and it is slower (0.819 s against 0.638 s). int4 still needs bf16 activations, so it is not measured.
+- **Quantisation:** the linear-only control gives identical tokens and LSD 0.0 on the T4. int8 quantises 48 layers, tokens diverge at token 5, LSD 21 dB, and it is slower (0.819 s against 0.638 s). int4 needs bf16 activations, so it was measured on the 3060 only (see the end of this report).
 
 The probe passes on both reduction settings, and that unchanged result still rejects the fp16 overflow theory.
 
@@ -519,6 +520,23 @@ The 72-word refusal for a long paragraph is replaced by chunking. A paragraph ov
 - **Joins:** one real join at 0.29 s of silence, the trailing silence of the last chunk at 0.20 s. The join silence comes from the decoder's end-of-chunk silence tokens, the same as in the sentence chunks.
 - **Repeat:** a seeded 135-word reply repeats within 2.2e-3 (max abs), the GPU's run-to-run level for longer audio.
 - **Latency:** the first audio of a long paragraph is its first chunk, about 70 words, rather than the first sentence. That is about 2 s for a 70-word chunk. Smaller chunks would lower it at the cost of more joins.
-- **Not listened to:** the join has not been checked by ear.
+- **Samples:** `nano_fast/bench/listen_samples.py` wrote `paragraphs.wav` (two paragraphs, 12.68 s) and `long_paragraph.wav` (25.84 s, one join at 14.72 s) to `/tmp/chatnano-local-check/samples/`. Measured, not heard: at 10 ms RMS the signal is below 0.005 for about 0.3 s before the join, the sample value at the join is 0 with no step, and the gap after the first paragraph is 0.4 s. A person still needs to listen.
 
 Consequences: the T4 sampling-speed numbers are not measured, and the 3060 decisions are unchanged. Production has no finiteness guard. No NaN has appeared in any 3060 run, so none was added; a guard in the sampler would be the protection on other hardware if it is ever needed. The suppression of the stop token in the timed loops is kept: it is correct for a loop that never ends, and it does not change the per-step cost.
+
+## int4 and bf16 T3, measured on the RTX 3060
+
+The last open item from the quantisation work. torchao's int4 weight-only path needs bf16 activations, and the fp16 default cannot take them without changing its dtype. This runs the T3 in bf16, with and without int4, against the fp16 default, on the same seed and two texts. Only the T3 is timed (`speech_tokens`), so these are token-loop numbers. `nano_fast/bench/int4_bf16.py` runs each mode in its own process.
+
+| Mode | Quantised layers | Short token loop | Long token loop | Tokens against fp16 |
+|---|---|---|---|---|
+| fp16 default | 0 | 311 ms | 476 ms | reference (162 and 261 tokens) |
+| bf16, no quantisation (control) | 0 | 314 ms | 443 ms | short differs at token 5 (162 against 189 tokens); long differs at token 120 |
+| bf16 + int4 weight-only | 48 | 261 ms | 438 ms | short differs at token 3 (162 against 173); long differs at token 4 (261 against 302) |
+
+- **Packing:** torchao 0.18.0 in the `ml` venv uses the PLAIN int4 packing by default, which needs the `mslk` package. The index only has `mslk` 0.0.0, so `mslk>=1.0.0` cannot be installed. The tinygemm packing (`Int4PackingFormat.TILE_PACKED_TO_4D`) runs without it and was used.
+- **Speed:** against the fp16 default, int4 is 16% faster on the short loop (51 ms) and 8% faster on the long (37 ms). Against the bf16 control it is 17% faster on the short loop and 1% on the long. The bf16 control is 1% slower than fp16 on the short text and 7% faster on the long. These are medians of five runs, one process per mode, not interleaved, so the 1% long-text gap between int4 and the bf16 control is within noise.
+- **Tokens:** the bf16 cast alone moves the first difference to token 5 on the short text, so int4 is not the only cause. int4 moves the first difference earlier on both texts. Earlier fast-path changes were kept only where the speech tokens stayed the same, or where the audio differed by less than the noise floor in LSD (the fp16 S3Gen decision).
+- **Decision:** rejected for the default. The gain is 37–51 ms per reply, and it would change the speech of every reply. No LSD or listening check was run on the int4 audio, because the tokens already differ.
+- **Memory:** `peak_mb` is not comparable across modes. The bf16 modes leave S3Gen in fp32 (2085 MB against 1773 MB for the default, which runs S3Gen in fp16).
+- **Not run on the T4:** the decision does not depend on the T4, and the Kaggle suite has no bf16 path.

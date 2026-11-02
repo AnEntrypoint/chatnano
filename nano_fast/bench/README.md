@@ -12,6 +12,8 @@ Run with the `ml` env (torch 2.14.1+cu130, triton 3.8.0), e.g. `python -I tokens
 - `ab_wavs.py`: writes fp32 and fp16-S3Gen WAV pairs for a listening check (`ab/`; WAVs are gitignored).
 - `stream_bench.py` and `streaming_diag.py` (windowed streaming against the single-pass render) were removed with the streaming code. Their results are in the report, and the code is in git history before the removal.
 - `length_probe.py`: the length at which Nano ends a reply early (sentence repeated k times). Sets the 72-word chunk limit in `serve.py`.
+- `int4_bf16.py <default|bf16|int4> <out.json>`: the T3 token loop in fp16 (default), bf16 without quantisation (control) and bf16 with int4 weight-only. One mode per process; compare the tokens of the three JSON files.
+- `listen_samples.py`: renders a two-paragraph text and a long paragraph through `serve.Server`'s own paragraph, chunk, seed and pause logic, and writes WAVs to `/tmp/chatnano-local-check/samples/` with the chunk-join times. Re-render with a fixed seed to compare.
 - `serve_bench.py`: the resident server live: startup, cold and warm requests, concurrent requests on one and on two servers.
 - `serve_equiv.py`: a served reply (`?seed=`) against the in-process single-pass render, with a different seed as the control.
 - `natural_length_probe.py`: reply length on varied natural prose at four lengths (speech rate per word). Confirms the 72-word limit is inside the range that completes.
