@@ -4,7 +4,7 @@ import sys, torch
 sys.path.insert(0, "/workspace/chatnano/chatterbox/src"); sys.path.insert(0, "/workspace/chatnano/nano_fast")
 from chatterbox.tts_turbo import ChatterboxTurboTTS
 from fast_nano import FastNano
-base = ChatterboxTurboTTS.from_pretrained(device="cuda", nano=True)
+base = ChatterboxTurboTTS.from_local("/workspace/chatsrc/chatnano-fp16", device="cuda", nano=True)  # the local fp16 directory, as serve.py
 fast = FastNano(base)
 SENT = "This sentence is part of a long reply that the server should either speak in full or refuse."
 def seconds(text, seed=0):

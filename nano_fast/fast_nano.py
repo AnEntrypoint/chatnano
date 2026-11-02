@@ -28,17 +28,7 @@ MAX_NEW_TOKENS = 1000
 CACHE_BUCKET = 256
 FIRST_BUDGET = 384  # generated tokens the first, tight-cache attempt may use
 STOP_CHECK_EVERY = 16  # steps between host syncs for the stop token (measured faster than a check every step)
-SPEECH_VOCAB = 6561  # speech token ids at or above this are control tokens, not audio
 
-# streaming: tokens before the first audio, tokens between renders, left context, and the newest tokens
-# held back: LOOKAHEAD for the encoder inside the window, plus TAIL so that the cross-faded tail has
-# right context from the flow decoder (a tail rendered at the window's edge did not match the next window)
-STREAM_FIRST = 20
-STREAM_STEP = 30
-STREAM_CONTEXT = 40
-LOOKAHEAD = 3
-TAIL = 10
-STREAM_MARGIN = LOOKAHEAD + TAIL
 
 
 def cut_at_stop_token(tokens, stop_token):
@@ -220,130 +210,11 @@ class FastNano:
         wav = self.m.watermarker.apply_watermark(wav, sample_rate=self.m.sr)
         return torch.from_numpy(wav).unsqueeze(0)
 
-    @torch.inference_mode()
-    def _token_stream(self, text, temperature, top_k, top_p, repetition_penalty, max_new_tokens):
-        # One sampled speech token at a time, with a full-budget cache: once audio is out, the reply
-        # cannot be restarted with a bigger budget. Same sampling as _decode, so tokens match it.
-        t3, tfmr = self.t3, self.tfmr
-        stop = t3.hp.stop_speech_token
-        # one sequence needs no padding; padding=True breaks tensor creation on transformers 5.16 (Kaggle)
-        ids = self.m.tokenizer(punc_norm(text), return_tensors="pt").input_ids.to(self.m.device)
-        sst = t3.hp.start_speech_token * torch.ones_like(ids[:, :1])
-        embeds, _ = t3.prepare_input_embeds(t3_cond=self.m.conds.t3, text_tokens=ids,
-                                            speech_tokens=sst, cfg_weight=0.0)
-        L = embeds.shape[1]
-        procs = self._sampler(temperature, top_k, top_p, repetition_penalty)
-        cache_len = -(-(L + max_new_tokens) // CACHE_BUCKET) * CACHE_BUCKET
-        cache = StaticCache(config=tfmr.config, max_cache_len=cache_len,
-                            device=self.m.device, dtype=embeds.dtype)
-        positions = torch.arange(L, L + max_new_tokens, device=self.m.device)
-        logits = self._step(embeds, cache, torch.arange(L, device=self.m.device))
-        tok = self._sample(procs, sst, logits)
-        history = [tok]
-        for i in range(max_new_tokens):
-            if i > 0 and int(tok) == stop:
-                return  # same stop rule as cut_at_stop_token: a stop after position 0 ends the reply
-            yield int(tok)
-            if i == max_new_tokens - 1:
-                return
-            logits = self.step(t3.speech_emb(tok), cache, positions[i:i + 1])
-            tok = self._sample(procs, torch.cat(history, dim=1), logits)
-            history.append(tok)
-
-    @torch.inference_mode()
-    def _render_mel(self, tokens, first, final, noise, mel1):
-        # Mel for the window of speech tokens [s, win_end), s = first - STREAM_CONTEXT. Mel frame j of the
-        # result is absolute frame 2*s + j. The noise is indexed by absolute frame, so windows share it.
-        T = len(tokens)
-        win_end = T if final else T - LOOKAHEAD
-        s = max(0, first - STREAM_CONTEXT)
-        win = torch.tensor(tokens[s:win_end], device=self.m.device, dtype=torch.long)
-        if final:
-            win = torch.cat([win, torch.tensor([S3GEN_SIL] * 3, device=self.m.device, dtype=torch.long)])
-        M = 2 * win.numel()
-        noise_win = torch.cat([noise[:, :, :mel1], noise[:, :, mel1 + 2 * s: mel1 + 2 * s + M]], dim=2)
-        # the audio side draws random numbers; fork the RNG so token sampling is unaffected
-        with torch.random.fork_rng(devices=[self.m.device]), \
-                torch.autocast("cuda", dtype=torch.float16, enabled=self.fp16_decoder):
-            mel = S3Token2Mel.forward(self.m.s3gen, win[None], None, None, ref_dict=self.m.conds.gen,
-                                      n_cfm_timesteps=2, finalize=True, noised_mels=noise_win)
-        return s, mel[0].float()
-
-    @torch.inference_mode()
-    def _vocode(self, mel):
-        # mel (80, frames) -> float32 samples, 480 per frame (24 kHz)
-        with torch.random.fork_rng(devices=[self.m.device]), \
-                torch.autocast("cuda", dtype=torch.float16, enabled=self.fp16_decoder):
-            wav, _ = self.m.s3gen.hift_inference(mel[None].to(dtype=self.m.s3gen.dtype))
-        return wav.squeeze(0).float()
-
-    @torch.inference_mode()
-    def _advance(self, st, tokens, final, noise, mel1):
-        # Commits the mel for speech tokens up to the render point and returns the newly final audio.
-        # Frames of the previous render that are not committed yet are blended with this render's frames
-        # over their overlap (mel domain, raised-cosine ramp), so the vocoder sees one continuous mel.
-        T = len(tokens)
-        E = T if final else T - STREAM_MARGIN
-        if E <= st["emitted"]:
-            return None
-        s, mel = self._render_mel(tokens, st["emitted"], final, noise, mel1)
-        seg = mel[:, 2 * st["emitted"] - 2 * s:]
-        if st["pending"] is not None:
-            ov = min(st["pending"].shape[1], seg.shape[1])
-            w = (0.5 - 0.5 * torch.cos(torch.pi * torch.linspace(0, 1, ov, device=seg.device))).to(seg)
-            seg = seg.clone()
-            seg[:, :ov] = (1 - w) * st["pending"][:, :ov] + w * seg[:, :ov]
-        n_commit = 2 * E - 2 * st["emitted"]
-        st["mel"] = seg[:, :n_commit] if st["mel"] is None else torch.cat([st["mel"], seg[:, :n_commit]], dim=1)
-        st["pending"] = seg[:, n_commit:]
-        st["emitted"] = E
-        wav = self._vocode(torch.cat([st["mel"], st["pending"]], dim=1))
-        end = 480 * st["mel"].shape[1]
-        piece = wav[st["samples"]:end]
-        if st["samples"] == 0:
-            fade = self.m.s3gen.trim_fade[:piece.numel()].to(piece)
-            piece = piece.clone()
-            piece[:fade.numel()] *= fade
-        st["samples"] = end
-        piece = piece.detach().cpu().numpy()
-        return self.m.watermarker.apply_watermark(piece, sample_rate=self.m.sr).astype("float32")
-
-    def _new_state(self):
-        return {"emitted": 0, "mel": None, "pending": None, "samples": 0}
-
-    @torch.inference_mode()
-    def render_whole(self, tokens, noise, mel1):
-        # one render of all tokens: the reference for the streamed audio
-        return self._advance(self._new_state(), tokens, True, noise, mel1)
-
-    @torch.inference_mode()
-    def stream(self, text, temperature=0.8, top_k=1000, top_p=0.95, repetition_penalty=1.2,
-               max_new_tokens=MAX_NEW_TOKENS, noise_seed=0):
-        # Yields float32 audio pieces while the reply is still being sampled. The first piece is ready
-        # after STREAM_FIRST tokens. The flow noise has its own generator, so the tokens match _token_stream.
-        mel1 = self.m.conds.gen["prompt_feat"].shape[1]
-        g = torch.Generator(device=self.m.device).manual_seed(noise_seed)
-        noise = torch.randn(1, 80, mel1 + 2 * max_new_tokens + 16, device=self.m.device,
-                            dtype=torch.float32, generator=g)
-        tokens, st, next_render = [], self._new_state(), STREAM_FIRST
-        for tok in self._token_stream(text, temperature, top_k, top_p, repetition_penalty, max_new_tokens):
-            if tok >= SPEECH_VOCAB:
-                continue
-            tokens.append(tok)
-            if len(tokens) >= next_render:
-                piece = self._advance(st, tokens, False, noise, mel1)
-                if piece is not None:
-                    yield piece
-                next_render = len(tokens) + STREAM_STEP
-        piece = self._advance(st, tokens, True, noise, mel1)
-        if piece is not None:
-            yield piece
-
 if __name__ == "__main__":
     import soundfile as sf
     text = ("Oh, that's hilarious! [chuckle] Um anyway, we do have a new model in store. "
             "Would you like me to get some prices for you?")
-    base = ChatterboxTurboTTS.from_pretrained(device="cuda", nano=True)
+    base = ChatterboxTurboTTS.from_local("/workspace/chatsrc/chatnano-fp16", device="cuda", nano=True)
     fast = FastNano(base)
     mode = sys.argv[1] if len(sys.argv) > 1 else "both"
     # the reference voice comes from the model's built-in conditionals

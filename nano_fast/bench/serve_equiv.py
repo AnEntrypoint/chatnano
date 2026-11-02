@@ -15,7 +15,9 @@ if len(sys.argv) > 1 and sys.argv[1] == "ref":
     sys.path.insert(0, "/workspace/chatnano/chatterbox/src"); sys.path.insert(0, "/workspace/chatnano/nano_fast")
     from chatterbox.tts_turbo import ChatterboxTurboTTS
     from fast_nano import FastNano
-    base = ChatterboxTurboTTS.from_pretrained(device="cuda", nano=True)
+    # the same fp16 directory serve.py loads; from_pretrained would re-download the hub copy
+    base = ChatterboxTurboTTS.from_local(os.environ.get("CHATNANO_WEIGHTS", "/workspace/chatsrc/chatnano-fp16"),
+                                         device="cuda", nano=True)
     fast = FastNano(base)
     for seed in SEEDS:
         torch.manual_seed(seed)

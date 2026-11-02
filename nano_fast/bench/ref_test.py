@@ -2,7 +2,7 @@ import sys, time, numpy as np, torch
 sys.path.insert(0, "/workspace/chatnano/chatterbox/src"); sys.path.insert(0, "/workspace/chatnano/nano_fast")
 from chatterbox.tts_turbo import ChatterboxTurboTTS, punc_norm
 import fast_nano
-base = ChatterboxTurboTTS.from_pretrained(device="cuda", nano=True)
+base = ChatterboxTurboTTS.from_local("/workspace/chatsrc/chatnano-fp16", device="cuda", nano=True)  # the local fp16 directory, as serve.py
 fast = fast_nano.FastNano(base)
 REF = "/workspace/chatnano/nano_fast/fast_nano_out.wav"
 TEXT = "Hello there, how are you doing today?"

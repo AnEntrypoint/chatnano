@@ -4,7 +4,7 @@ sys.path.insert(0, f"{src}/chatterbox/src"); sys.path.insert(0, f"{src}/nano_fas
 import torch
 from chatterbox.tts_turbo import ChatterboxTurboTTS
 from fast_nano import FastNano
-base = ChatterboxTurboTTS.from_pretrained(device="cuda", nano=True)
+base = ChatterboxTurboTTS.from_local("/workspace/chatsrc/chatnano-fp16", device="cuda", nano=True)  # the local fp16 directory, as serve.py
 fast = FastNano(base)
 def timed(text):
     torch.manual_seed(0); torch.cuda.synchronize(); s = time.perf_counter(); fast.speech_tokens(text); torch.cuda.synchronize(); return time.perf_counter() - s

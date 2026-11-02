@@ -9,7 +9,7 @@ TEXTS = [
     "Hello there.",
     "This is a considerably longer sentence, written to push the decoder past a few dozen speech tokens, so that the cache bucket and the stop check both get exercised across several boundaries in one run.",
 ]
-base = ChatterboxTurboTTS.from_pretrained(device="cuda", nano=True)
+base = ChatterboxTurboTTS.from_local("/workspace/chatsrc/chatnano-fp16", device="cuda", nano=True)  # the local fp16 directory, as serve.py
 fast = FastNano(base)
 def base_tokens(text):
     ids = base.tokenizer(punc_norm(text), return_tensors="pt", padding=True, truncation=True).input_ids.to(base.device)

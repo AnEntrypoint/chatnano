@@ -1,15 +1,17 @@
 # Chatterbox-Nano fast path
 
-`fast_nano.py` runs Nano's autoregressive loop with a static KV cache and a
-CUDA-graph decode step (`torch.compile(mode="reduce-overhead")`). Speech tokens match
-`ChatterboxTurboTTS.generate()` for a fixed seed. Two stages differ by default: S3Gen runs
-under fp16 autocast (`enable_fp16_decoder(False)` restores fp32), and the watermark runs on
-the GPU (same decoded message, sample difference about 2e-5).
+`fast_nano.py` runs Nano's autoregressive loop with a static KV cache and a compiled
+decode step (`torch.compile(mode="max-autotune")`, eager attention). Speech tokens match
+`ChatterboxTurboTTS.generate()` for a fixed seed. Three stages are fp16 by default: T3 (with the
+speech head kept in fp32), S3Gen under fp16 (`enable_fp16_decoder(False)` restores fp32), and
+the watermark runs on the GPU (same decoded message, sample difference about 2e-5).
 
-`serve.py` is the resident server: it loads and warms the model once, renders each reply whole,
-and sends it in 250 ms blocks. Requests longer than 72 words get 413, because Nano ends longer
-replies early (`bench/length_probe.py`). Measurements and decisions: `reports/Chatterbox Nano
-maximum speed RTX 3060.md`.
+`serve.py` is the resident server: it loads and warms the model once. Each line of the text is a
+paragraph. A paragraph over 72 words is split at sentence ends into chunks of at most 72 words,
+rendered one at a time and joined by concatenation (Nano ends replies over about 72 words early,
+`bench/length_probe.py`). Audio is sent as float32 PCM in 250 ms blocks as each render completes,
+with a 0.4 s pause after each paragraph. A single sentence over 72 words gets 413. Measurements and
+decisions: `reports/Chatterbox Nano maximum speed RTX 3060.md`.
 
 Run from the chatterbox venv or the global env (`python3 -I nano_fast/fast_nano.py both`).
 
@@ -32,5 +34,6 @@ run. Prefill runs eagerly, because its shape differs from the decode step.
 
 Known limits: the compiled step warms up on the first call (several seconds of
 compile). A new text length can still cost about 2 s to compile when it crosses a
-cache bucket. The stop check runs every step, so a reply ends at the same token as
-`generate()`.
+cache bucket. The stop check runs every 16 steps (one host sync per 16 tokens). Tokens
+sampled after the stop are cut, so a reply ends at the same token as `generate()`, and
+the RNG is restored to the state a per-step check would leave, so the audio is the same.

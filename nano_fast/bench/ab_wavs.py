@@ -3,7 +3,7 @@ import sys, numpy as np, soundfile as sf, torch
 sys.path.insert(0, "/workspace/chatnano/chatterbox/src"); sys.path.insert(0, "/workspace/chatnano/nano_fast")
 from chatterbox.tts_turbo import ChatterboxTurboTTS
 import fast_nano
-base = ChatterboxTurboTTS.from_pretrained(device="cuda", nano=True)
+base = ChatterboxTurboTTS.from_local("/workspace/chatsrc/chatnano-fp16", device="cuda", nano=True)  # the local fp16 directory, as serve.py
 fast = fast_nano.FastNano(base)
 TEXTS = {
     "a_hilarious": "Oh, that's hilarious! [chuckle] Um anyway, we do have a new model in store. Would you like me to get some prices for you?",

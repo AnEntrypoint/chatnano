@@ -2,7 +2,7 @@ import sys, time, statistics, numpy as np, torch, librosa, copy
 sys.path.insert(0, "/workspace/chatnano/chatterbox/src"); sys.path.insert(0, "/workspace/chatnano/nano_fast")
 from chatterbox.tts_turbo import ChatterboxTurboTTS, punc_norm, S3GEN_SIL
 import fast_nano
-base = ChatterboxTurboTTS.from_pretrained(device="cuda", nano=True)
+base = ChatterboxTurboTTS.from_local("/workspace/chatsrc/chatnano-fp16", device="cuda", nano=True)  # the local fp16 directory, as serve.py
 TEXTS = ["Oh, that's hilarious! [chuckle] Um anyway, we do have a new model in store. Would you like me to get some prices for you?",
          "This is a considerably longer sentence, written to push the decoder past a few dozen speech tokens, so that the cache bucket and the stop check both get exercised.",
          "Hello there, how are you doing today?"]
