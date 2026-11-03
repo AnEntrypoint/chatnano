@@ -767,3 +767,34 @@ Over three probe runs the 6.6 s reply saved 2.2, 3.2 and 4.4 ms. The 11.2 ms par
 
 **Not verified:** the graph path inside `generate()` and served replies (the probe calls HiFT directly, so flow, watermark and trim_fade are outside it); the CPU generator state (only the CUDA state was compared); more than three probe runs; the mel length moves by a few frames between processes (paragraph was 394 and 416 frames).
 
+## Pipelined units: vocoder of unit k against the tokens of unit k+1 (measured, not kept)
+
+Question: while unit k's flow, HiFT and watermark run, the T3 token loop of unit k+1 runs too. Does that hide the vocoder time? Ceiling first (`nano_fast/bench/pipeline_ceiling.py`, serial timing, seed 0, 5 repeats, medians). The ceiling is the sum over k of min(vocoder k, T3 k+1), divided by the total render time. Other GPU users were present during the runs: pid 424 (selkies, 317 MiB, 1% utilisation) and a browser GPU process (63 MiB). Neither is compute load from this work.
+
+| reply | units | T3 per unit (s) | vocoder per unit (s) | total (s) | ceiling |
+| two paragraphs (`listen_samples.py`) | 2 | 0.303, 0.253 | 0.116, 0.107 | 0.774 | 15.0% |
+| long paragraph | 2 | 0.621, 0.478 | 0.208, 0.177 | 1.481 | 14.2% |
+| long paragraph twice | 4 | 0.634, 0.513, 0.640, 0.462 | 0.215, 0.181, 0.221, 0.174 | 3.130 | 20.0% |
+
+The gate (at least 10% for a reply of two or more units) passed, so the overlap was built and measured against HEAD. The build gave each unit's tokens a CUDA generator of its own, seeded as before. The vocoder then continued from the generator state the draw left, so the arithmetic matched the serial path. The speech and vocoder threads ran on two CUDA streams, and the reply held the lock for its whole render. The consumer read a queue, so a stalled client held nothing.
+
+Measured with `nano_fast/bench/pipeline_check.py`: a `git archive` copy of HEAD against the working tree, in separate processes in the order HEAD, new, HEAD, new, three repeats each. Medians per pass, averaged over the two passes:
+
+| reply | units | first audio HEAD → new (s) | total HEAD → new (s) | total saving |
+| two paragraphs, seed 0 | 2 | 0.46 → 0.57 | 0.86 → 0.87 | -2% |
+| two paragraphs, seed 1 | 2 | 0.47 → 0.53 | 0.85 → 0.81 | 4% |
+| long paragraph, seed 0 | 2 | 0.91 → 0.98 | 1.68 → 1.62 | 3% |
+| long paragraph, seed 1 | 2 | 1.78 → 1.88 | 2.46 → 2.46 | 0% |
+| four units, seed 0 | 4 | 0.92 → 0.99 | 3.33 → 3.26 | 2% |
+| four units, seed 1 | 4 | 1.84 → 1.90 | 4.12 → 4.02 | 2% |
+
+With the vocoder on a higher-priority stream, first audio was still 50 to 60 ms worse and the total saving was 1 to 3%.
+
+Result: the real saving is about 1.5% on average, against a ceiling of 14 to 20%. First audio is 60 to 100 ms worse on the short replies and 4 to 7% worse on the long ones. The differences of about 2% sit inside the run-to-run spread of HEAD, which reached 0.1 s between passes on the same code. The overlap does not hide the vocoder. T3 and the vocoder share the GPU queues, and the ceiling assumed they do not. Not measured: SM occupancy, and the share of the vocoder's Python time held under the GIL.
+
+Correctness of the build. An in-process check rendered each reply twice through the pipeline and once serially with `generate(seed)`. The lengths matched for all six replies. Pipelined against serial, the max abs difference was 5.8e-4 to 1.0e-3, the same size as the run-to-run difference inside one process (6.9e-4 to 1.2e-3, with one case at 2.5e-2 on two paragraphs seed 0). Across processes, HEAD against HEAD differed by 0.2 to 0.3 dB LSD on five replies, and by 7.2 dB on four units seed 1, where the length moved by 5760 samples. So cross-process token flips already exist in HEAD. The build changed length between its own two passes on four of six replies. The sample is two passes, so the cause is not isolated.
+
+Decision: not kept in the repo. The ceiling rule passed, but the measured overlap is about 1.5% and first audio gets worse, which breaks the first-audio constraint. `nano_fast/fast_nano.py` and `nano_fast/serve.py` are unchanged. The build is kept as `/tmp/pipeline-overlap-build.patch`, outside the repo, so it may not survive a reboot. Committed: the two bench scripts (`pipeline_ceiling.py`, `pipeline_check.py`) and their README entries.
+
+Not verified: the warm-up path of the build; behaviour under concurrent requests; any other GPU or CPU load on the machine during the passes; the cause of the cross-process token flips.
+
