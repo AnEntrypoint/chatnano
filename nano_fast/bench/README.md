@@ -34,6 +34,7 @@ Run with the `ml` env (torch 2.14.1+cu130, triton 3.8.0), e.g. `python -I tokens
 - `decoder_graph_control.py OUT.json TEXT SEED`: generate twice eager and twice graphed, tokens and wav compared, to set the wav differences against run-to-run noise.
 - `decoder_graph_hift.py OUT.json`: the mel that reaches HiFT inside generate(), graphs off and on, with the generator state at that point.
 - `render_graph_wavs.py OUT_DIR`: WAVs of three texts at two seeds, graphs off and on, for `asr_check.py`.
+- `hift_graph_probe.py OUT.json WAV_DIR`: HiFT alone at exact mel length, eager against one CUDA graph per text and per 64-frame length, with the wav and generator-state checks and the capture cost. Its graph body reimplements the ISTFT and the sine source (see the HiFT graphs subsection of the report).
 - `../kaggle/t4_check.py`: the T4 check as a Kaggle script kernel: fresh-process token counts and the audio with whisper-tiny transcripts.
 - `old_tokens.json`: token output of the code before the fast-path changes (`5f16c12` parent). `new_tokens.json`: output of the code at `5d71f59`.
 

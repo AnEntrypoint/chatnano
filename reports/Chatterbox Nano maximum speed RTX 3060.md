@@ -736,3 +736,34 @@ Removing the combine launch does not show in graph time: A's saving over eager (
 
 **Not verified:** more than six e2e rounds, and e2e only at the two bench texts (the 1200-slot case is in the bench only); the T4; a counter lifecycle under serving, since the kernel is not installed; a listening or transcript check (not needed while the default is unchanged).
 
+## HiFT graphs: measured, not adopted (2026-11-03)
+
+Question: does a CUDA graph for the HiFT vocoder (`mel2wav.inference`) save enough per reply to be the default? Measured on the RTX 3060 Laptop, ml env, GPU idle before each run (2 to 3% utilisation, no compute job of ours). Bench: `nano_fast/bench/hift_graph_probe.py OUT.json WAV_DIR`.
+
+**Why this is the ceiling, not a padded version.** The graph was built at exact mel length, with no padding, so its output needs no trimming. Padding (options a and c) can only add work on top of this, and capture per new length (option b) costs 70 to 170 ms, more than any saving at reply lengths. The padded options are therefore not worth building.
+
+**What blocked capture, all in `hifigan.py`:** `SineGen` builds its zeros on the CPU and copies them over; `Uniform` draws the phase on the CPU; `torch.istft` synchronises for its NOLA check; the STFT window is a CPU tensor copied on each call. The probe works around each one (window moved to the device, ISTFT rewritten as fold overlap-add, the phase and both noise tensors drawn outside the graph in eager order), so the captured body is a reimplementation, not `HiFTGenerator.inference`.
+
+**Time per call, HiFT only, interleaved, 7 rounds, medians (one run):**
+
+| text (mel frames) | eager | graph, incl. draws | saving | graph replay only | capture |
+|---|---|---|---|---|---|
+| hello (46, about 0.9 s) | 20.3 ms | 7.3 ms | 13.0 ms | 6.7 ms | 67 ms |
+| short (330, 6.6 s) | 43.7 ms | 40.5 ms | 3.2 ms | 39.5 ms | 108 ms |
+| paragraph (394) | 60.8 ms | 49.7 ms | 11.2 ms | 49.3 ms | 135 ms |
+| long (528, 10.6 s) | 68.0 ms | 62.3 ms | 5.7 ms | 62.6 ms | 164 ms |
+
+Over three probe runs the 6.6 s reply saved 2.2, 3.2 and 4.4 ms. The 11.2 ms paragraph figure comes from the reimplemented eager body being about 9 ms faster than torch's eager on that run; the graph itself saves 1.4 to 2.6 ms in the two runs that measured it separately. The report's earlier figure of about 60 ms for HiFT was not reproduced: the 6.6 s reply measured 43 to 44 ms.
+
+**Length sweep** (the long mel sliced to each length, one run): saving 23.2 ms at 64 frames (graph only 15.6), 6.8 at 128, 4.1 at 192, then 3 to 5 ms up to 512 (graph only 2.1 to 2.8). Capture 84 to 172 ms per length.
+
+**Equivalence against eager, same process and seed:**
+- Waveform, graph against eager: max abs 0.0003 to 0.0010, LSD 0.19 to 0.27 dB at real lengths (0.45 dB at 46 frames).
+- Eager against eager with the same seed (control): max abs 0.0003 to 0.0008, LSD 0.19 to 0.26 dB at real lengths. The graph difference is inside this noise.
+- CUDA generator state after each call: identical in all 12 rows.
+- Transcripts (Whisper-tiny, `asr_check.py`) for the short and paragraph renders: identical, eager against graph.
+
+**Decision: not the default, and no production code added.** The saving rule fails. At the 6.6 s reply the graph saves 2 to 4 ms, against the rule's 10 ms. Only replies under about one second save 10 ms or more. The other three checks pass on the probe (transcripts, LSD inside control noise, generator state), so the failure is on saving alone. Because no production graph path exists, there is no `enable_hift_graphs` flag to add, and nothing to revert; the HiFT call in `serve.py` is unchanged.
+
+**Not verified:** the graph path inside `generate()` and served replies (the probe calls HiFT directly, so flow, watermark and trim_fade are outside it); the CPU generator state (only the CUDA state was compared); more than three probe runs; the mel length moves by a few frames between processes (paragraph was 394 and 416 frames).
+
