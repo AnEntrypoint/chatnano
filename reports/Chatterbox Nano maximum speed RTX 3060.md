@@ -700,3 +700,39 @@ Kaggle kernel `heclgang/chatnano-t4-check` (private), run as version 3 and as ve
 
 **Reading.** The T4 confirms that the S3Gen fix transcribes like the reference, and that the graph path does not move the output away from the reference. The graph output is not bit-identical to eager on either card. Whether the 0.5 to 0.9 dB difference is audible is a listening question. The pairs to listen to are the T4 files `/tmp/chatnano-kaggle/t4-out/wav/short_s1_eager.wav` and `/tmp/chatnano-kaggle/t4-out/wav/short_s1_graph.wav` (0.88 dB, the largest) in the v4 output, and on the 3060 `/tmp/chatnano-local-check/graphs/paragraph_s1_eager.wav` and `paragraph_s1_graph.wav` (the largest waveform difference, 0.057 max abs).
 
+
+## Fused attention combine (2026-11-03)
+
+The open item from the rejected kernel: fold the combine into the partial kernel, so each layer is one launch. Measured on the RTX 3060 (`nano_fast/decode_attn.py`, benches in `nano_fast/bench/`, ml env).
+
+- **Variant A (kept):** the split kernel as before, 64 slots per program. The last program of each head merges the partials: one `tl.atomic_add` (acq_rel) on a per-head counter after a barrier, and the counter is reset by that program. The counter is allocated once in `install()`. A lazy allocation during the first compiled call fails torch's cudagraph pool check (`Detected 1 tensor(s) in the cudagraph pool not tracked as outputs`), which was the first e2e attempt.
+- **Variant B (rejected):** one program per head that walks all cache blocks with the online softmax, so no split and no combine. Saving over eager at 256, 384, 768, 1024, 1200 slots: 42, 18, -2, -15, -18% with 64-slot blocks; 61, 48, 36, 29, 25% with 128-slot blocks. Twelve serial programs on 12 of 30 SMs lose to A from 384 slots up.
+- **Correctness:** max abs difference from eager 2.4e-4 to 9.8e-4 at 256 to 1200 slots (fp16 rounding). A is bit-identical to the committed split kernel at all 15 positions tested. Graph replays of A are bit-stable over 300 runs, and the counter returns to zero after every call.
+
+**12-layer bench** (`bench/decode_attn_bench.py`, one CUDA graph, GPU time, 1200 slots added to the bench). Split and A are interleaved medians of three rounds in one session; the eager column is from the variant A bench run:
+
+| slots | eager us | split us | A us | A vs split |
+|---|---|---|---|---|
+| 256 | 175 | 65 | 63 | -2.4% |
+| 384 | 178 | 78 | 78 | +0.3% |
+| 768 | 256 | 124 | 124 | +0.7% |
+| 1024 | 291 | 156 | 157 | +0.8% |
+| 1200 | 342 | 179 | 182 | +1.3% |
+
+Removing the combine launch does not show in graph time: A's saving over eager (61, 58, 52, 47, 49%) matches the split kernel's (63, 54, 50, 46%) within the drift of the card.
+
+**End to end** (`bench/decode_attn_e2e.py`, compiled token loop, one process per mode, seven timed repeats per process, six interleaved rounds eager and triton, GPU 67 to 79 C; medians of per-process medians, ms):
+
+- short: eager 306.6 (range 289.6 to 353.5), triton 299.8 (280.3 to 323.2): -2.2%, paired mean -3.6%.
+- long: eager 479.9 (443.7 to 529.7), triton 474.7 (437.3 to 508.6): -1.1%, paired mean -2.5%.
+- Paired per-round differences run from -12.8% to +9.8%, so the gain is inside the run-to-run noise.
+
+**Tokens** (`bench/decode_attn_tokens.py`, five seeds, three texts, 15 pairs):
+
+- Two eager processes in the same session agree on 15 of 15. Across the two eager batches, the token counts differ on two pairs (long/4, paragraph/3), so the baseline varies by at least 2 of 15 between processes.
+- Triton against eager differs on 2 of 15 in each of two triton runs (short/2 and paragraph/3 in the first, paragraph/3 and long/3 in the second). The two triton runs also differ from each other (short/2, long/3), so compiled triton is not deterministic across processes either. That is no larger than the eager baseline's variation.
+
+**Decision: not the default.** The end-to-end gain (1 to 3% on medians) is inside the run-to-run noise of about 10%, so the first rule (beats eager beyond noise) is not met. The token differences are no larger than the baseline's, but that alone does not install it. The kernel still needs Triton and still patches attention process-wide, so the rejection reason above still applies. The default path is unchanged: `fast_nano.py` and `serve.py` do not import `decode_attn`. `decode_attn.py` now holds variant A, still uninstalled, so the experiment can be measured again later.
+
+**Not verified:** more than six e2e rounds, and e2e only at the two bench texts (the 1200-slot case is in the bench only); the T4; a counter lifecycle under serving, since the kernel is not installed; a listening or transcript check (not needed while the default is unchanged).
+

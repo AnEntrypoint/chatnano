@@ -69,7 +69,7 @@ def graph_ms(fn, qs, ks, vs, mask, mod, n=200):
 
 def main():
     mod = Mod()
-    for L in (256, 384, 768, 1024):
+    for L in (256, 384, 768, 1024, 1200):
         pos = L // 2
         qs, ks, vs, mask = inputs(L, pos)
         with torch.inference_mode():
